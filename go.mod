@@ -1,0 +1,9 @@
+module gitlab.strale.io/go-travel
+
+go 1.13
+
+require (
+	github.com/dgrijalva/jwt-go v3.2.0+incompatible
+	github.com/julienschmidt/httprouter v1.3.0
+	github.com/proullon/ramsql v0.0.0-20181213202341-817cee58a244
+)
