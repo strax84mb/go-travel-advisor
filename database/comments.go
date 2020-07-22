@@ -169,19 +169,22 @@ func getCommentsForCity(cityID int64, maxComments int) ([]CommentDto, *common.Ge
 	if err != nil {
 		return nil, err
 	}
+	if count == 0 {
+		return nil, nil
+	}
 	if maxComments < count && maxComments != -1 {
 		count = maxComments
 	}
 	list := make([]CommentDto, count)
 	err = performListSelection(
-		"database.comments.countCommentsForCity",
+		"database.comments.getCommentsForCity",
 		count, list[:],
 		func(_ []interface{}) (*sql.Rows, error) {
-			query := `SELECT c.id, c.content, u.username, c.created, c.modified
-			FROM comment c 
-			JOIN user u ON u.id = c.user_id
-			WHERE c.city_id = $1
-			ORDER BY c.created DESC LIMIT $2`
+			query := `SELECT comment.id, comment.content, user.username, comment.created, comment.modified
+			FROM comment 
+			JOIN user ON user.id = comment.user_id
+			WHERE comment.city_id = $1
+			ORDER BY comment.created DESC LIMIT $2`
 			return db.Query(query, cityID, count)
 		},
 		func(rows *sql.Rows, pointer interface{}, index int) error {

@@ -2,12 +2,13 @@ package database
 
 import (
 	"database/sql"
+	"fmt"
 
 	"gitlab.strale.io/go-travel/common"
 )
 
 // GetAllCities - list all cities
-func GetAllCities(maxCommants int) ([]CityDto, error) {
+func GetAllCities(maxCommants int) ([]CityDto, *common.GeneralError) {
 	// count all cities to know how big to make city array
 	count, err := countAllCities()
 	if err != nil {
@@ -27,9 +28,9 @@ func GetAllCities(maxCommants int) ([]CityDto, error) {
 			if err != nil {
 				return err
 			}
-			comments, err := getCommentsForCity(city.ID, maxCommants)
-			if err != nil {
-				return err
+			comments, generalError := getCommentsForCity(city.ID, maxCommants)
+			if generalError != nil {
+				return generalError
 			}
 			city.Comments = comments
 			cities[index] = city
@@ -54,29 +55,22 @@ func getAllCitiesConversion(rows *sql.Rows, array interface{}, index int) error 
 	return err
 }
 
-func countAllCities() (int, error) {
-	query := `SELECT COUNT(city.id) FROM city`
-	rows, err := db.Query(query)
-	defer rows.Close()
+func countAllCities() (int, *common.GeneralError) {
+	value, _, err := performSingleSelection(
+		"database.cities.countAllCities",
+		func(_ []interface{}) (*sql.Rows, error) {
+			query := `SELECT COUNT(city.id) FROM city`
+			return db.Query(query)
+		},
+		func(rows *sql.Rows) (interface{}, error) {
+			var count int
+			err := rows.Scan(&count)
+			return count, err
+		})
 	if err != nil {
-		return 0, &common.GeneralError{
-			Message:  "Error while reading city by ID!",
-			Location: "database.cities.GetAllCities",
-			Cause:    err,
-		}
+		return 0, err
 	}
-	var count int
-	for rows.Next() {
-		err = rows.Scan(&count)
-		if err != nil {
-			return 0, &common.GeneralError{
-				Message:  "Error while reading columns",
-				Location: "database.cities.countAllCities",
-				Cause:    err,
-			}
-		}
-	}
-	return count, nil
+	return value.(int), nil
 }
 
 // GetCityByID - get city by ID
@@ -113,43 +107,39 @@ func GetCityByID(id int64, maxComments int) (CityDto, bool, *common.GeneralError
 	return result.(CityDto), true, nil
 }
 
-func getCityByNameAndCountry(name string, country string) (CityDto, error) {
-	query := `SELECT id FROM city WHERE name = $1 AND country = $2`
-	rows, err := db.Query(query, name, country)
-	if err != nil {
-		return CityDto{}, &common.GeneralError{
-			Message:  "Error while querying for city by name and country",
-			Location: "database.cities.getCityByNameAndCountry",
-			Cause:    err,
-		}
-	}
-	defer rows.Close()
-	city := CityDto{
-		Name:    name,
-		Country: country,
-	}
-	for rows.Next() {
-		err = rows.Scan(&city.ID)
-		if err != nil {
-			return CityDto{}, &common.GeneralError{
-				Message:  "Error while reading columns",
-				Location: "database.cities.getCityByNameAndCountry",
-				Cause:    err,
+func getCityByNameAndCountry(name string, country string) (CityDto, *common.GeneralError) {
+	value, found, err := performSingleSelection(
+		"database.cities.getCityByNameAndCountry",
+		func(_ []interface{}) (*sql.Rows, error) {
+			query := `SELECT id FROM city WHERE name = $1 AND country = $2`
+			return db.Query(query, name, country)
+		},
+		func(rows *sql.Rows) (interface{}, error) {
+			city := CityDto{
+				Name:    name,
+				Country: country,
 			}
+			err := rows.Scan(&city.ID)
+			return city, err
+		})
+	if err != nil {
+		return CityDto{}, err
+	}
+	if !found {
+		return CityDto{}, &common.GeneralError{
+			Message:   fmt.Sprintf("City with name %s and country %s not found!", name, country),
+			Location:  "database.cities.getCityByNameAndCountry",
+			ErrorType: common.CityNotFound,
 		}
 	}
-	return city, nil
+	return value.(CityDto), nil
 }
 
 // AddNewCity - save new city
-func AddNewCity(name string, country string) error {
+func AddNewCity(name string, country string) *common.GeneralError {
 	city, err := getCityByNameAndCountry(name, country)
-	if err != nil {
-		return &common.GeneralError{
-			Message:  "Error while checking if such city already exists",
-			Location: "database.cities.AddNewCity",
-			Cause:    err,
-		}
+	if err != nil && err.ErrorType != common.CityNotFound {
+		return err
 	}
 	if city.ID != 0 {
 		return &common.GeneralError{
@@ -168,7 +158,7 @@ func executeAddNewCity(params []interface{}) (sql.Result, error) {
 }
 
 // UpdateCity - updates a city
-func UpdateCity(id int64, name string, country string) error {
+func UpdateCity(id int64, name string, country string) *common.GeneralError {
 	return performStatement("database.cities.UpdateCity",
 		func(params []interface{}) (sql.Result, error) {
 			id := params[0].(int64)
@@ -181,9 +171,9 @@ func UpdateCity(id int64, name string, country string) error {
 }
 
 // DeleteCity - delete a city with given ID
-func DeleteCity(id int64) error {
+func DeleteCity(id int64) *common.GeneralError {
 	err := deleteCommentsForCity(id)
-	if err != nil {
+	if err != nil && err.ErrorType != common.NoRowsAffected {
 		return err
 	}
 	return performStatement("database.cities.DeleteCity",

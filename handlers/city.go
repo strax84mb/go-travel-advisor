@@ -115,7 +115,6 @@ func GetAllCities(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	if _, ok := checkJwt(w, r, db.UserRoleAny); !ok {
 		return
 	}
-	var err error
 	var maxComments int
 	var ok bool
 	if maxComments, ok = getIntFromQuery(w, r, "max-comments", -1, "Bad value for max-comments"); !ok {
