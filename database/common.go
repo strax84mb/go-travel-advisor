@@ -6,7 +6,7 @@ import (
 	"gitlab.strale.io/go-travel/common"
 )
 
-func performStatement(location string, execution func([]interface{}) (sql.Result, error), params ...interface{}) error {
+func performStatement(location string, execution func([]interface{}) (sql.Result, error), params ...interface{}) *common.GeneralError {
 	result, err := execution(params)
 	if err != nil {
 		return &common.GeneralError{
@@ -25,9 +25,9 @@ func performStatement(location string, execution func([]interface{}) (sql.Result
 	}
 	if affected < 1 {
 		return &common.GeneralError{
-			Message:  "No rows affected by this statement",
-			Location: location,
-			Cause:    err,
+			Message:   "No rows affected by this statement",
+			Location:  location,
+			ErrorType: common.NoRowsAffected,
 		}
 	}
 	return nil
@@ -39,7 +39,7 @@ func performListSelection(
 	array interface{},
 	selection func([]interface{}) (*sql.Rows, error),
 	conversion func(*sql.Rows, interface{}, int) error,
-	params ...interface{}) error {
+	params ...interface{}) *common.GeneralError {
 	rows, err := selection(params)
 	if err != nil {
 		return &common.GeneralError{
@@ -66,7 +66,7 @@ func performSingleSelection(
 	location string,
 	selection func([]interface{}) (*sql.Rows, error),
 	conversion func(*sql.Rows) (interface{}, error),
-	params ...interface{}) (interface{}, bool, error) {
+	params ...interface{}) (interface{}, bool, *common.GeneralError) {
 	rows, err := selection(params)
 	if err != nil {
 		return nil, false, &common.GeneralError{

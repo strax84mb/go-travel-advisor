@@ -18,7 +18,24 @@ func GetAllCities(maxCommants int) ([]CityDto, error) {
 		}
 	}
 	cities := make([]CityDto, count)
-	err = performListSelection("database.cities.GetAllCities", count, cities, getAllCitiesSelection, getAllCitiesConversion)
+	err = performListSelection(
+		"database.cities.GetAllCities", count, cities[:], getAllCitiesSelection,
+		func(rows *sql.Rows, array interface{}, index int) error {
+			cities := array.([]CityDto)
+			city := CityDto{}
+			err := rows.Scan(&city.ID, &city.Name, &city.Country)
+			if err != nil {
+				return err
+			}
+			comments, err := getCommentsForCity(city.ID, maxCommants)
+			if err != nil {
+				return err
+			}
+			city.Comments = comments
+			cities[index] = city
+			return nil
+
+		})
 	return cities, err
 }
 
@@ -63,7 +80,7 @@ func countAllCities() (int, error) {
 }
 
 // GetCityByID - get city by ID
-func GetCityByID(id int64, maxComments int) (CityDto, bool, error) {
+func GetCityByID(id int64, maxComments int) (CityDto, bool, *common.GeneralError) {
 	result, found, err := performSingleSelection(
 		"database.cities.GetCityByID",
 		func(params []interface{}) (*sql.Rows, error) {
@@ -76,7 +93,15 @@ func GetCityByID(id int64, maxComments int) (CityDto, bool, error) {
 				ID: id,
 			}
 			err := rows.Scan(&city.Name, &city.Country)
-			return &city, err
+			if err != nil {
+				return nil, err
+			}
+			comments, err := getCommentsForCity(id, maxComments)
+			if err != nil {
+				return nil, err
+			}
+			city.Comments = comments
+			return city, nil
 		},
 		id)
 	if err != nil {
@@ -85,7 +110,7 @@ func GetCityByID(id int64, maxComments int) (CityDto, bool, error) {
 	if !found {
 		return CityDto{}, false, nil
 	}
-	return *(result.(*CityDto)), true, nil
+	return result.(CityDto), true, nil
 }
 
 func getCityByNameAndCountry(name string, country string) (CityDto, error) {
@@ -157,7 +182,10 @@ func UpdateCity(id int64, name string, country string) error {
 
 // DeleteCity - delete a city with given ID
 func DeleteCity(id int64) error {
-	// TODO Delete comments
+	err := deleteCommentsForCity(id)
+	if err != nil {
+		return err
+	}
 	return performStatement("database.cities.DeleteCity",
 		func(params []interface{}) (sql.Result, error) {
 			id := params[0].(int64)

@@ -2,10 +2,13 @@ package database
 
 import (
 	"crypto/sha512"
+	"database/sql"
 	"encoding/hex"
+	"fmt"
 	"math/rand"
 	"strconv"
 
+	"gitlab.strale.io/go-travel/common"
 	cmn "gitlab.strale.io/go-travel/common"
 )
 
@@ -164,35 +167,29 @@ func GetUserSaltByUsername(username string) (string, error) {
 	return salt, nil
 }
 
-func getUserByUsername(username string) (UserDto, error) {
-	query := `SELECT id, role FROM user WHERE username = $1`
-	rows, err := db.Query(query, username)
-	defer rows.Close()
-	if err != nil {
-		return UserDto{}, &cmn.GeneralError{
-			Message:  "Error while running query",
-			Location: "datavase.users.getUserByUsername",
-			Cause:    err,
-		}
-	}
-	user := UserDto{
-		Username: username,
-	}
-	for rows.Next() {
-		err = rows.Scan(&user.ID, &user.Role)
-		if err != nil {
-			return UserDto{}, &cmn.GeneralError{
-				Message:  "Error while reading columns",
-				Location: "database.users.getUserByUsername",
-				Cause:    err,
+func getUserByUsername(username string) (UserDto, *common.GeneralError) {
+	value, found, err := performSingleSelection(
+		"database.users.getUserByUsername",
+		func(_ []interface{}) (*sql.Rows, error) {
+			query := `SELECT id, role FROM user WHERE username = $1`
+			return db.Query(query, username)
+		},
+		func(rows *sql.Rows) (interface{}, error) {
+			user := UserDto{
+				Username: username,
 			}
+			err := rows.Scan(&user.ID, &user.Role)
+			return user, err
+		})
+	if err != nil {
+		return UserDto{}, err
+	}
+	if !found {
+		return UserDto{}, &common.GeneralError{
+			Message:   fmt.Sprintf("Username %s not found!", username),
+			Location:  "database.users.getUserByUsername",
+			ErrorType: common.UserNotFound,
 		}
 	}
-	if user.ID == 0 {
-		return UserDto{}, &cmn.GeneralError{
-			Message:  "Username not found",
-			Location: "database.users.getUserByUsername",
-		}
-	}
-	return user, nil
+	return value.(UserDto), nil
 }

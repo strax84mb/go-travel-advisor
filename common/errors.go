@@ -4,14 +4,27 @@ import (
 	"strings"
 )
 
+// Error types
+const (
+	NoRowsAffected = 101
+
+	UserNotAllowed = 301
+
+	CityNotFound    = 401
+	CommentNotFount = 402
+	UserNotFound    = 403
+	AirportNotFound = 404
+)
+
 // GeneralError - General description error with stack trace
 type GeneralError struct {
-	Message  string
-	Location string
-	Cause    error
+	Message   string
+	Location  string
+	Cause     error
+	ErrorType int
 }
 
-func (err *GeneralError) Error() string {
+func (err GeneralError) Error() string {
 	if err.Cause == nil {
 		return err.Message + " at " + err.Location
 	}

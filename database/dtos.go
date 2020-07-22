@@ -14,8 +14,8 @@ type CommentDto struct {
 	ID       int64
 	Text     string
 	Username string
-	created  time.Time
-	modified time.Time
+	Created  time.Time
+	Modified time.Time
 }
 
 // CityDto - city object to expose
