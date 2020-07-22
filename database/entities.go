@@ -15,11 +15,11 @@ var UserRoleAny = "any"
 
 // User - User entity
 type User struct {
-	id       int64
-	username string
-	password string
-	salt     string
-	role     string
+	ID       int64
+	Username string `gorm:"type:varchar(30);unique_index"`
+	Password string `gorm:"type:varchar(100)"`
+	Salt     string `gorm:"type:varchar(100)"`
+	Role     string `gorm:"type:varchar(15)"`
 }
 
 // City - City entity

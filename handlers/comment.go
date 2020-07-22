@@ -25,9 +25,8 @@ func PostComment(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	if !getBody(w, r, payload) {
 		return
 	}
-	errRaw := db.AddComment(payload.Text, username, payload.CityID)
-	if errRaw != nil {
-		err := errRaw.(common.GeneralError)
+	err := db.AddComment(payload.Text, username, payload.CityID)
+	if err != nil {
 		if err.ErrorType > 400 && err.ErrorType < 500 {
 			http.Error(w, err.Message, http.StatusNotFound)
 			return

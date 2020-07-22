@@ -8,7 +8,8 @@ import (
 const (
 	NoRowsAffected = 101
 
-	UserNotAllowed = 301
+	UserNotAllowed    = 301
+	IncorrectPassword = 302
 
 	CityNotFound    = 401
 	CommentNotFount = 402

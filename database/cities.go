@@ -8,7 +8,7 @@ import (
 )
 
 // GetAllCities - list all cities
-func GetAllCities(maxCommants int) ([]CityDto, *common.GeneralError) {
+func GetAllCities(maxComments int) ([]CityDto, *common.GeneralError) {
 	// count all cities to know how big to make city array
 	count, err := countAllCities()
 	if err != nil {
@@ -28,7 +28,7 @@ func GetAllCities(maxCommants int) ([]CityDto, *common.GeneralError) {
 			if err != nil {
 				return err
 			}
-			comments, generalError := getCommentsForCity(city.ID, maxCommants)
+			comments, generalError := getCommentsForCity(city.ID, maxComments)
 			if generalError != nil {
 				return generalError
 			}
@@ -90,9 +90,9 @@ func GetCityByID(id int64, maxComments int) (CityDto, bool, *common.GeneralError
 			if err != nil {
 				return nil, err
 			}
-			comments, err := getCommentsForCity(id, maxComments)
-			if err != nil {
-				return nil, err
+			comments, generalError := getCommentsForCity(id, maxComments)
+			if generalError != nil {
+				return nil, generalError
 			}
 			city.Comments = comments
 			return city, nil

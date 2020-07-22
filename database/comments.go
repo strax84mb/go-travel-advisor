@@ -9,7 +9,7 @@ import (
 )
 
 // AddComment - saving a new comment
-func AddComment(text string, username string, cityID int64) error {
+func AddComment(text string, username string, cityID int64) *common.GeneralError {
 	user, err := getUserByUsername(username)
 	if err != nil {
 		return err
@@ -31,8 +31,9 @@ func AddComment(text string, username string, cityID int64) error {
 			cityID := params[0].(int64)
 			userID := params[1].(int64)
 			text := params[2].(string)
+			now := time.Now().Unix()
 			statement := `INSERT INTO comment (city_id, user_id, content, created, modified) VALUES ($1, $2, $3, $4, $5)`
-			return db.Exec(statement, cityID, userID, text, time.Now(), time.Now())
+			return db.Exec(statement, cityID, userID, text, now, now)
 		},
 		cityID, user.ID, text)
 }
@@ -109,7 +110,7 @@ func UpdateComment(id int64, text string, username string, cityID int64) error {
 		func(params []interface{}) (sql.Result, error) {
 			comment := *(params[0].(*Comment))
 			statement := `UPDATE comment SET content = $1, modified = $2 WHERE id = $3`
-			return db.Exec(statement, comment.text, time.Now(), comment.id)
+			return db.Exec(statement, comment.text, time.Now().Unix(), comment.id)
 		},
 		comment)
 }
@@ -169,7 +170,7 @@ func getCommentsForCity(cityID int64, maxComments int) ([]CommentDto, *common.Ge
 	if err != nil {
 		return nil, err
 	}
-	if count == 0 {
+	if count == 0 || maxComments == 0 {
 		return nil, nil
 	}
 	if maxComments < count && maxComments != -1 {
@@ -189,10 +190,14 @@ func getCommentsForCity(cityID int64, maxComments int) ([]CommentDto, *common.Ge
 		},
 		func(rows *sql.Rows, pointer interface{}, index int) error {
 			comment := CommentDto{}
-			err := rows.Scan(&comment.ID, &comment.Text, &comment.Username, &comment.Created, &comment.Modified)
+			var created int64
+			var modified int64
+			err := rows.Scan(&comment.ID, &comment.Text, &comment.Username, &created, &modified)
 			if err != nil {
 				return err
 			}
+			comment.Created = time.Unix(created, 0)
+			comment.Modified = time.Unix(modified, 0)
 			list := pointer.([]CommentDto)
 			list[index] = comment
 			return nil

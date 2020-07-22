@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"net/http"
-	"strings"
 
 	"github.com/julienschmidt/httprouter"
 	db "gitlab.strale.io/go-travel/database"
@@ -23,7 +22,11 @@ func SignupUser(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	}
 	// save new user
 	if err := db.SaveNewUser(payload.Username, payload.Password); err != nil {
-		writeISEWithError(w, err)
+		if err.ErrorType > 300 && err.ErrorType < 400 {
+			http.Error(w, err.Message, http.StatusUnauthorized)
+		} else {
+			http.Error(w, err.Message, http.StatusInternalServerError)
+		}
 		return
 	}
 	// respond with success
@@ -39,18 +42,18 @@ func LoginUser(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	}
 	// validate user
 	user, salt, err := db.GetUserByUsernameAndPassword(payload.Username, payload.Password)
-	if err != nil {
-		if strings.Contains(err.Error(), "Incorrect password!") || strings.Contains(err.Error(), "Incorrect username!") {
-			writeUnauthorised(w, "Username or password are incorrect!")
+	if err := db.SaveNewUser(payload.Username, payload.Password); err != nil {
+		if err.ErrorType > 300 && err.ErrorType < 400 {
+			http.Error(w, err.Message, http.StatusUnauthorized)
 		} else {
-			writeISEWithError(w, err)
+			http.Error(w, err.Message, http.StatusInternalServerError)
 		}
 		return
 	}
 	// generate token
 	token, err := generateJwt(payload.Username, user.Role, salt)
 	if err != nil {
-		writeISE(w, "Error while generating JWT!")
+		http.Error(w, err.Message, http.StatusInternalServerError)
 		return
 	}
 	// respond with success

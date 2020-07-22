@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"log"
 	"strings"
 	"time"
 
@@ -10,7 +11,7 @@ import (
 	jwt "github.com/dgrijalva/jwt-go"
 )
 
-func generateJwt(username string, role string, salt string) (string, error) {
+func generateJwt(username string, role string, salt string) (string, *common.GeneralError) {
 	now := time.Now()
 	exp := now.Add(3600 * 1000000000)
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
@@ -22,6 +23,7 @@ func generateJwt(username string, role string, salt string) (string, error) {
 	})
 	tokenString, err := token.SignedString([]byte(salt))
 	if err != nil {
+		log.Printf("Error while generating JWT! Error: %s\n", err.Error())
 		return "", &common.GeneralError{
 			Cause:    err,
 			Message:  "Failed to sign jwt token!",
