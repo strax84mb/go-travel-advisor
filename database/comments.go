@@ -1,10 +1,10 @@
 package database
 
 import (
-	"database/sql"
-	"fmt"
+	"log"
 	"time"
 
+	"github.com/jinzhu/gorm"
 	"gitlab.strale.io/go-travel/common"
 )
 
@@ -14,82 +14,61 @@ func AddComment(text string, username string, cityID int64) *common.GeneralError
 	if err != nil {
 		return err
 	}
-	_, found, err := GetCityByID(cityID, 0)
+	_, _, err = GetCityByID(cityID, 0)
 	if err != nil {
 		return err
 	}
-	if !found {
+	now := time.Now()
+	comment := Comment{
+		CityID:   cityID,
+		Created:  &now,
+		Modified: &now,
+		PosterID: user.ID,
+		Text:     text,
+	}
+	if e := gdb.Create(&comment).Error; e != nil {
+		log.Printf("Error while saving comment! Error: %s\n", e.Error())
 		return &common.GeneralError{
-			Message:   fmt.Sprintf("City with ID %d not found!", cityID),
-			Location:  "database.comments.AddComment",
-			ErrorType: common.CityNotFound,
+			Message:  "Error while saving comment!",
+			Location: "database.comments.AddComment",
+			Cause:    e,
 		}
 	}
-	return performStatement(
-		"database.comments.AddComment",
-		func(params []interface{}) (sql.Result, error) {
-			cityID := params[0].(int64)
-			userID := params[1].(int64)
-			text := params[2].(string)
-			now := time.Now().Unix()
-			statement := `INSERT INTO comment (city_id, user_id, content, created, modified) VALUES ($1, $2, $3, $4, $5)`
-			return db.Exec(statement, cityID, userID, text, now, now)
-		},
-		cityID, user.ID, text)
+	return nil
 }
 
 func getCommentByID(id int64) (Comment, *common.GeneralError) {
-	comment, found, err := performSingleSelection(
-		"database.comments.getCommentByID",
-		func(params []interface{}) (*sql.Rows, error) {
-			commentID := params[0].(int64)
-			query := `SELECT city_id, user_id, content, created, modified FROM comment WHERE id = $1`
-			return db.Query(query, commentID)
-		},
-		func(rows *sql.Rows) (interface{}, error) {
-			comment := Comment{
-				id: id,
+	comment := Comment{}
+	curDB := gdb.Find(&comment, id)
+	if curDB.Error != nil {
+		if curDB.RecordNotFound() {
+			return Comment{}, &common.GeneralError{
+				Message:   "Comment with ID %d not found!",
+				Location:  "database.comments.getCommentByID",
+				ErrorType: common.CommentNotFount,
 			}
-			err := rows.Scan(&comment.cityID, &comment.userID, &comment.text, &comment.created, &comment.modified)
-			return comment, err
-		},
-		id)
-	if err != nil {
-		return Comment{}, err
-	}
-	if !found {
+		}
+		log.Printf("Error while reading comment! Error: %s\n", curDB.Error.Error())
 		return Comment{}, &common.GeneralError{
-			Message:   fmt.Sprintf("Comment with ID %d not found!", id),
-			Location:  "database.comments.getCommentByID",
-			ErrorType: common.CommentNotFount,
+			Message:  "Error while reading comment!",
+			Location: "database.comments.getCommentByID",
+			Cause:    curDB.Error,
 		}
 	}
-	return comment.(Comment), err
-
+	return comment, nil
 }
 
 // UpdateComment - updating existing comment by user that posted it
-func UpdateComment(id int64, text string, username string, cityID int64) error {
+func UpdateComment(id int64, text string, username string, cityID int64) *common.GeneralError {
 	// check if user exists
 	user, err := getUserByUsername(username)
 	if err != nil {
-		return &common.GeneralError{
-			Message:  "Error while finding user with given username",
-			Location: "database.comments.UpdateComment",
-			Cause:    err,
-		}
-	}
-	// check if city exists
-	_, found, err := GetCityByID(cityID, 0)
-	if err != nil {
 		return err
 	}
-	if !found {
-		return &common.GeneralError{
-			Message:   fmt.Sprintf("City with ID %d not found!", cityID),
-			Location:  "database.comments.UpdateComment",
-			ErrorType: common.CityNotFound,
-		}
+	// check if city exists
+	_, _, err = GetCityByID(cityID, 0)
+	if err != nil {
+		return err
 	}
 	// check if comment exists
 	comment, err := getCommentByID(id)
@@ -97,22 +76,25 @@ func UpdateComment(id int64, text string, username string, cityID int64) error {
 		return err
 	}
 	// check if original poster wants change
-	if user.ID != comment.userID {
+	if user.ID != comment.PosterID {
 		return &common.GeneralError{
 			Message:   "Comment may be changed by original poster only!",
 			Location:  "database.comments.UpdateComment",
 			ErrorType: common.UserNotAllowed,
 		}
 	}
-	// do comment update
-	return performStatement(
-		"database.comments.UpdateComment",
-		func(params []interface{}) (sql.Result, error) {
-			comment := *(params[0].(*Comment))
-			statement := `UPDATE comment SET content = $1, modified = $2 WHERE id = $3`
-			return db.Exec(statement, comment.text, time.Now().Unix(), comment.id)
-		},
-		comment)
+	now := time.Now()
+	comment.Text = text
+	comment.Modified = &now
+	if e := gdb.Save(&comment).Error; e != nil {
+		log.Printf("Error while updating comment! Error: %s\n", e.Error())
+		return &common.GeneralError{
+			Message:  "Error while updating comment!",
+			Location: "database.comments.UpdateComment",
+			Cause:    e,
+		}
+	}
+	return nil
 }
 
 // DeleteComment - delete a comment by admin or original poster
@@ -120,11 +102,7 @@ func DeleteComment(id int64, username string) *common.GeneralError {
 	// check if user exists
 	user, err := getUserByUsername(username)
 	if err != nil {
-		return &common.GeneralError{
-			Message:  "Error while finding user with given username",
-			Location: "database.comments.DeleteComment",
-			Cause:    err,
-		}
+		return err
 	}
 	_, err = getCommentByID(id)
 	if err != nil {
@@ -137,32 +115,28 @@ func DeleteComment(id int64, username string) *common.GeneralError {
 			ErrorType: common.UserNotAllowed,
 		}
 	}
-	return performStatement(
-		"database.comments.DeleteComment",
-		func(params []interface{}) (sql.Result, error) {
-			id := params[0].(int64)
-			statement := `DELETE FROM comment WHERE id = $1`
-			return db.Exec(statement, id)
-		},
-		id)
+	if e := gdb.Delete(&Comment{ID: id}).Error; e != nil {
+		log.Printf("Error while deleting comment! Error: %s\n", e.Error())
+		return &common.GeneralError{
+			Message:  "Error while deleting comment!",
+			Location: "database.comments.DeleteComment",
+			Cause:    e,
+		}
+	}
+	return nil
 }
 
 func countCommentsForCity(cityID int64) (int, *common.GeneralError) {
-	result, _, err := performSingleSelection(
-		"database.comments.countCommentsForCity",
-		func(_ []interface{}) (*sql.Rows, error) {
-			query := `SELECT COUNT(id) FROM comment WHERE city_id = $1`
-			return db.Query(query, cityID)
-		},
-		func(rows *sql.Rows) (interface{}, error) {
-			count := 0
-			err := rows.Scan(&count)
-			return count, err
-		})
-	if err != nil {
-		return 0, err
+	var count int
+	if e := gdb.Where(&Comment{CityID: cityID}).Count(&count).Error; e != nil {
+		log.Printf("Error while counting comments for city! Error: %s\n", e.Error())
+		return 0, &common.GeneralError{
+			Message:  "Error while counting comments for city!",
+			Location: "database.comments.countCommentsForCity",
+			Cause:    e,
+		}
 	}
-	return result.(int), nil
+	return count, nil
 }
 
 func getCommentsForCity(cityID int64, maxComments int) ([]CommentDto, *common.GeneralError) {
@@ -176,40 +150,24 @@ func getCommentsForCity(cityID int64, maxComments int) ([]CommentDto, *common.Ge
 	if maxComments < count && maxComments != -1 {
 		count = maxComments
 	}
-	list := make([]CommentDto, count)
-	err = performListSelection(
-		"database.comments.getCommentsForCity",
-		count, list[:],
-		func(_ []interface{}) (*sql.Rows, error) {
-			query := `SELECT comment.id, comment.content, user.username, comment.created, comment.modified
-			FROM comment 
-			JOIN user ON user.id = comment.user_id
-			WHERE comment.city_id = $1
-			ORDER BY comment.created DESC LIMIT $2`
-			return db.Query(query, cityID, count)
-		},
-		func(rows *sql.Rows, pointer interface{}, index int) error {
-			comment := CommentDto{}
-			var created int64
-			var modified int64
-			err := rows.Scan(&comment.ID, &comment.Text, &comment.Username, &created, &modified)
-			if err != nil {
-				return err
-			}
-			comment.Created = time.Unix(created, 0)
-			comment.Modified = time.Unix(modified, 0)
-			list := pointer.([]CommentDto)
-			list[index] = comment
-			return nil
-		})
-	return list, err
+	comments := make([]CommentDto, count)
+	e := gdb.Select("comments.id, comments.text, users.username, comments.created, comments.modified").
+		Joins("JOIN users ON users.id = comments.posert_id").
+		Where(&Comment{CityID: cityID}).
+		Order("created desc").
+		Limit(count).
+		Find(&comments).Error
+	if e != nil {
+		log.Printf("Error while fetching comments for city! Error: %s\n", e.Error())
+		return nil, &common.GeneralError{
+			Message:  "Error while fetching comments for city!",
+			Location: "database.comments.getCommentsForCity",
+			Cause:    e,
+		}
+	}
+	return comments, nil
 }
 
-func deleteCommentsForCity(cityID int64) *common.GeneralError {
-	return performStatement(
-		"database.comments.deleteCommentsForCity",
-		func(_ []interface{}) (sql.Result, error) {
-			statement := `DELETE FROM comment WHERE city_id = $1`
-			return db.Exec(statement, cityID)
-		})
+func deleteCommentsForCity(cityID int64, tx *gorm.DB) error {
+	return tx.Where(&Comment{CityID: cityID}).Delete(&Comment{}).Error
 }

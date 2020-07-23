@@ -24,19 +24,21 @@ type User struct {
 
 // City - City entity
 type City struct {
-	id      int64
-	name    string
-	country string
+	ID       int64
+	Name     string    `gorm:"type:varchar(100)"`
+	Country  string    `gorm:"type:varchar(100)"`
+	Comments []Comment `gorm:"foreignkey:CityID;association_foreignkey:ID"`
 }
 
 // Comment - Comment entity
 type Comment struct {
-	id       int64
-	cityID   int64
-	userID   int64
-	text     string
-	created  time.Time
-	modified time.Time
+	ID       int64
+	CityID   int64
+	PosterID int64
+	Poster   User   `gorm:"foreignkey:ID;association_foreignkey:PosterID"`
+	Text     string `gorm:"type:varchar(255)"`
+	Created  *time.Time
+	Modified *time.Time
 }
 
 // Airport - Airport entity

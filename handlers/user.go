@@ -42,7 +42,7 @@ func LoginUser(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	}
 	// validate user
 	user, salt, err := db.GetUserByUsernameAndPassword(payload.Username, payload.Password)
-	if err := db.SaveNewUser(payload.Username, payload.Password); err != nil {
+	if err != nil {
 		if err.ErrorType > 300 && err.ErrorType < 400 {
 			http.Error(w, err.Message, http.StatusUnauthorized)
 		} else {

@@ -3,9 +3,8 @@ package handlers
 import (
 	"net/http"
 
-	"gitlab.strale.io/go-travel/common"
-
 	"github.com/julienschmidt/httprouter"
+	"gitlab.strale.io/go-travel/common"
 	db "gitlab.strale.io/go-travel/database"
 )
 
@@ -51,9 +50,8 @@ func UpdateComment(w http.ResponseWriter, r *http.Request, p httprouter.Params) 
 	if !ok {
 		return
 	}
-	errRaw := db.UpdateComment(id, payload.Text, username, payload.CityID)
-	if errRaw != nil {
-		err := errRaw.(common.GeneralError)
+	err := db.UpdateComment(id, payload.Text, username, payload.CityID)
+	if err != nil {
 		if err.ErrorType > 400 && err.ErrorType < 500 {
 			http.Error(w, err.Message, http.StatusNotFound)
 			return

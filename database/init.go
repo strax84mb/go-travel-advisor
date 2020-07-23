@@ -27,8 +27,7 @@ func InitDb() {
 	if err != nil {
 		log.Fatal(err.Error())
 	}
-	gdb.AutoMigrate(&User{})
-	gdb.Unscoped().Delete(User{})
+	gdb.AutoMigrate(&User{}, &City{}, &Comment{})
 	user := User{
 		Username: "admin",
 		Password: "admin",
