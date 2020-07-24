@@ -13,11 +13,11 @@ import (
 func getBody(w http.ResponseWriter, r *http.Request, v interface{}) bool {
 	bytes, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		writeBadRequest(w, "Error reading payload")
+		http.Error(w, "Error reading payload", http.StatusBadRequest)
 		return false
 	}
 	if err = json.Unmarshal(bytes, v); err != nil {
-		writeBadRequest(w, "Invalid payload")
+		http.Error(w, "Invalid payload", http.StatusBadRequest)
 		return false
 	}
 	return true
