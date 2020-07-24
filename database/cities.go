@@ -1,15 +1,15 @@
 package database
 
 import (
+	"errors"
 	"fmt"
 	"log"
 
 	"github.com/jinzhu/gorm"
-	"gitlab.strale.io/go-travel/common"
 )
 
 // GetAllCities - list all cities
-func GetAllCities(maxComments int) ([]CityDto, *common.GeneralError) {
+func GetAllCities(maxComments int) ([]CityDto, error) {
 	// count all cities to know how big to make city array
 	count, err := countAllCities()
 	if err != nil {
@@ -18,10 +18,8 @@ func GetAllCities(maxComments int) ([]CityDto, *common.GeneralError) {
 	cities := make([]City, count)
 	if e := gdb.Find(&cities).Error; e != nil {
 		log.Printf("Error while reading all cities! Error: %s\n", e.Error())
-		return nil, &common.GeneralError{
-			Message:  "Error while reading all cities!",
-			Location: "database.cities.GetAllCities",
-			Cause:    e,
+		return nil, &StatementError{
+			Message: "Error while reading all cities!",
 		}
 	}
 	result := make([]CityDto, count)
@@ -40,36 +38,30 @@ func GetAllCities(maxComments int) ([]CityDto, *common.GeneralError) {
 	return result, nil
 }
 
-func countAllCities() (int, *common.GeneralError) {
+func countAllCities() (int, error) {
 	var count int
 	if err := gdb.Model(&City{}).Count(&count).Error; err != nil {
 		log.Printf("Error while counting cities! Error: %s\n", err.Error())
-		return 0, &common.GeneralError{
-			Message:  "Error while counting cities!",
-			Location: "database.cities.countAllCities",
-			Cause:    err,
+		return 0, &StatementError{
+			Message: "Error while counting cities!",
 		}
 	}
 	return count, nil
 }
 
 // GetCityByID - get city by ID
-func GetCityByID(id int64, maxComments int) (CityDto, bool, *common.GeneralError) {
+func GetCityByID(id int64, maxComments int) (CityDto, bool, error) {
 	city := City{}
 	currDB := gdb.First(&city, id)
 	if currDB.Error != nil {
 		if currDB.RecordNotFound() {
-			return CityDto{}, false, &common.GeneralError{
-				Message:   fmt.Sprintf("City with ID %d not found!", id),
-				Location:  "database.cities.GetCityByID",
-				ErrorType: common.CityNotFound,
+			return CityDto{}, false, &NotFoundError{
+				Message: fmt.Sprintf("City with ID %d not found!", id),
 			}
 		}
 		log.Printf("Error while reading city! Error: %s\n", currDB.Error.Error())
-		return CityDto{}, false, &common.GeneralError{
-			Message:  "Error while reading city!",
-			Location: "database.cities.GetCityByID",
-			Cause:    currDB.Error,
+		return CityDto{}, false, &StatementError{
+			Message: "Error while reading city!",
 		}
 	}
 	comments, err := getCommentsForCity(id, maxComments)
@@ -85,22 +77,18 @@ func GetCityByID(id int64, maxComments int) (CityDto, bool, *common.GeneralError
 	return result, true, nil
 }
 
-func getCityByNameAndCountry(name string, country string) (CityDto, *common.GeneralError) {
+func getCityByNameAndCountry(name string, country string) (CityDto, error) {
 	city := City{}
 	currDB := gdb.Where("LOWER(name) = LOWER(?) AND LOWER(country) = LOWER(?)", name, country).First(&city)
 	if currDB.Error != nil {
 		if currDB.RecordNotFound() {
-			return CityDto{}, &common.GeneralError{
-				Message:   fmt.Sprintf("City with name %s in country %s not found!", name, country),
-				Location:  "database.cities.getCityByNameAndCountry",
-				ErrorType: common.CityNotFound,
+			return CityDto{}, &NotFoundError{
+				Message: fmt.Sprintf("City with name %s in country %s not found!", name, country),
 			}
 		}
 		log.Printf("Error while reading city! Error: %s\n", currDB.Error.Error())
-		return CityDto{}, &common.GeneralError{
-			Message:  "Error while reading city!",
-			Location: "database.cities.getCityByNameAndCountry",
-			Cause:    currDB.Error,
+		return CityDto{}, &StatementError{
+			Message: "Error while reading city!",
 		}
 	}
 	result := CityDto{
@@ -112,9 +100,13 @@ func getCityByNameAndCountry(name string, country string) (CityDto, *common.Gene
 }
 
 // AddNewCity - save new city
-func AddNewCity(name string, country string) *common.GeneralError {
+func AddNewCity(name string, country string) error {
 	_, err := getCityByNameAndCountry(name, country)
-	if err != nil && err.ErrorType != common.CityNotFound {
+	if err == nil {
+		return &ForbidenError{
+			Message: fmt.Sprintf("City with name %s in country %s is already saved!", name, country),
+		}
+	} else if !errors.As(err, &NotFoundError{}) {
 		return err
 	}
 	city := City{
@@ -123,63 +115,55 @@ func AddNewCity(name string, country string) *common.GeneralError {
 	}
 	if e := gdb.Create(&city).Error; e != nil {
 		log.Printf("Error while saving city! Error: %s\n", e.Error())
-		return &common.GeneralError{
-			Message:  "Error while saving city!",
-			Location: "database.cities.AddNewCity",
-			Cause:    e,
+		return &StatementError{
+			Message: "Error while saving city!",
 		}
 	}
 	return nil
 }
 
 // UpdateCity - updates a city
-func UpdateCity(id int64, name string, country string) *common.GeneralError {
+func UpdateCity(id int64, name string, country string) error {
 	city := City{
 		ID:      id,
 		Name:    name,
 		Country: country,
 	}
 	if gdb.NewRecord(&city) {
-		return &common.GeneralError{
-			Message:   fmt.Sprintf("City with ID %d not found!", id),
-			Location:  "database.cities.UpdateCity",
-			ErrorType: common.CityNotFound,
+		return &NotFoundError{
+			Message: fmt.Sprintf("City with ID %d not found!", id),
 		}
 	}
 	if e := gdb.Save(&city).Error; e != nil {
 		log.Printf("Error while updating city! Error: %s\n", e.Error())
-		return &common.GeneralError{
-			Message:  "Error while updating city!",
-			Location: "database.cities.UpdateCity",
-			Cause:    e,
+		return &StatementError{
+			Message: "Error while updating city!",
 		}
 	}
 	return nil
 }
 
 // DeleteCity - delete a city with given ID
-func DeleteCity(id int64) *common.GeneralError {
-	err := gdb.Transaction(func(tx *gorm.DB) error {
+func DeleteCity(id int64) error {
+	return gdb.Transaction(func(tx *gorm.DB) error {
 		err := deleteCommentsForCity(id, tx)
 		if err != nil {
-			log.Printf("Error while deleting comments of city! Error: %s\n", err.Error())
 			return err
 		}
 		city := City{ID: id}
-		err = tx.Delete(&city).Error
+		curdb := tx.Delete(&city)
+		if curdb.RowsAffected == 0 {
+			return &NotFoundError{
+				Message: fmt.Sprintf("City with ID %d not found!", id),
+			}
+		}
+		err = curdb.Error
 		if err != nil {
-			log.Printf("Error while reading city! Error: %s\n", err.Error())
-			return err
+			log.Printf("Error while deleting city! Error: %s\n", err.Error())
+			return &StatementError{
+				Message: "Error while deleting city!",
+			}
 		}
 		return nil
 	})
-	if err != nil {
-		log.Printf("Error while deleting city! Error: %s\n", err.Error())
-		return &common.GeneralError{
-			Message:  "Error while deleting city!",
-			Location: "database.cities.DeleteCity",
-			Cause:    err,
-		}
-	}
-	return nil
 }

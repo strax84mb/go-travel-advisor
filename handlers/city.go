@@ -1,8 +1,7 @@
 package handlers
 
 import (
-	"fmt"
-	"log"
+	"errors"
 	"net/http"
 
 	"github.com/julienschmidt/httprouter"
@@ -27,8 +26,12 @@ func AddCity(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	}
 	err := db.AddNewCity(payload.Name, payload.Country)
 	if err != nil {
-		log.Printf("Error while adding new city: %s", err.Error())
-		http.Error(w, "Error while adding new city", http.StatusInternalServerError)
+		var fe *db.ForbidenError
+		if errors.As(err, &fe) {
+			http.Error(w, fe.Error(), http.StatusForbidden)
+		} else {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
 		return
 	}
 	// respond with success
@@ -52,8 +55,12 @@ func UpdateCity(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	}
 	err := db.UpdateCity(id, payload.Name, payload.Country)
 	if err != nil {
-		log.Printf("Error while updating city: %s\n", err.Error())
-		http.Error(w, "Error while updating city", http.StatusInternalServerError)
+		var nfe *db.NotFoundError
+		if errors.As(err, &nfe) {
+			http.Error(w, nfe.Error(), http.StatusNotFound)
+		} else {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
 		return
 	}
 	// respond with success
@@ -73,7 +80,12 @@ func DeleteCity(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	}
 	err := db.DeleteCity(id)
 	if err != nil {
-		writeISEWithReasonAndError(w, "Error while deleting city", err)
+		var nfe *db.NotFoundError
+		if errors.As(err, &nfe) {
+			http.Error(w, nfe.Error(), http.StatusNotFound)
+		} else {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
 		return
 	}
 	// respond with success
@@ -95,14 +107,14 @@ func GetCity(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	if maxComments, ok = getIntFromQuery(w, r, "max-comments", -1, "Bad value for max-comments"); !ok {
 		return
 	}
-	city, found, err := db.GetCityByID(id, maxComments)
+	city, _, err := db.GetCityByID(id, maxComments)
 	if err != nil {
-		log.Printf("Error while reading city: %s\n", err.Error())
-		http.Error(w, "Error while reading city", http.StatusInternalServerError)
-		return
-	}
-	if !found {
-		http.Error(w, fmt.Sprintf("City with ID %d not found!", id), http.StatusNotFound)
+		var nfe *db.NotFoundError
+		if errors.As(err, &nfe) {
+			http.Error(w, nfe.Error(), http.StatusNotFound)
+		} else {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
 		return
 	}
 	serializeResponse(w, city)
@@ -121,8 +133,7 @@ func GetAllCities(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	}
 	cities, err := db.GetAllCities(maxComments)
 	if err != nil {
-		log.Printf("Error while listing all cities: %s\n", err.Error())
-		http.Error(w, "Error while listing all cities", http.StatusInternalServerError)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	serializeResponse(w, cities)

@@ -1,10 +1,10 @@
 package handlers
 
 import (
+	"errors"
 	"net/http"
 
 	"github.com/julienschmidt/httprouter"
-	"gitlab.strale.io/go-travel/common"
 	db "gitlab.strale.io/go-travel/database"
 )
 
@@ -26,11 +26,12 @@ func PostComment(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	}
 	err := db.AddComment(payload.Text, username, payload.CityID)
 	if err != nil {
-		if err.ErrorType > 400 && err.ErrorType < 500 {
-			http.Error(w, err.Message, http.StatusNotFound)
-			return
+		var nfe *db.NotFoundError
+		if errors.As(err, &nfe) {
+			http.Error(w, nfe.Error(), http.StatusNotFound)
+		} else {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
-		http.Error(w, err.Message, http.StatusInternalServerError)
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
@@ -52,11 +53,15 @@ func UpdateComment(w http.ResponseWriter, r *http.Request, p httprouter.Params) 
 	}
 	err := db.UpdateComment(id, payload.Text, username, payload.CityID)
 	if err != nil {
-		if err.ErrorType > 400 && err.ErrorType < 500 {
-			http.Error(w, err.Message, http.StatusNotFound)
-			return
+		var nfe *db.NotFoundError
+		var fe *db.ForbidenError
+		if errors.As(err, &nfe) {
+			http.Error(w, nfe.Error(), http.StatusNotFound)
+		} else if errors.As(err, &fe) {
+			http.Error(w, fe.Error(), http.StatusForbidden)
+		} else {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
-		http.Error(w, err.Message, http.StatusInternalServerError)
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
@@ -78,15 +83,15 @@ func DeleteComment(w http.ResponseWriter, r *http.Request, p httprouter.Params) 
 	}
 	err := db.DeleteComment(id, username)
 	if err != nil {
-		if err.ErrorType == common.UserNotAllowed {
-			http.Error(w, err.Message, http.StatusUnauthorized)
-			return
+		var nfe *db.NotFoundError
+		var fe *db.ForbidenError
+		if errors.As(err, &nfe) {
+			http.Error(w, nfe.Error(), http.StatusNotFound)
+		} else if errors.As(err, &fe) {
+			http.Error(w, fe.Error(), http.StatusForbidden)
+		} else {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
-		if err.ErrorType > 400 && err.ErrorType < 500 {
-			http.Error(w, err.Message, http.StatusNotFound)
-			return
-		}
-		http.Error(w, err.Message, http.StatusInternalServerError)
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)

@@ -15,6 +15,7 @@ const (
 	CommentNotFount = 402
 	UserNotFound    = 403
 	AirportNotFound = 404
+	RouteNotFound   = 405
 )
 
 // GeneralError - General description error with stack trace

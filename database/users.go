@@ -7,18 +7,11 @@ import (
 	"log"
 	"math/rand"
 	"time"
-
-	"gitlab.strale.io/go-travel/common"
-	cmn "gitlab.strale.io/go-travel/common"
 )
 
-func saveUser(user User) *cmn.GeneralError {
+func saveUser(user User) error {
 	if !gdb.First(&User{}, "username = ?", user.Username).RecordNotFound() {
-		return &cmn.GeneralError{
-			Message:   "Username taken",
-			Location:  "database.users.saveUser",
-			ErrorType: cmn.UserNotAllowed,
-		}
+		return &UsernameTakenError{}
 	}
 	salt := generateSalt()
 	hexSalt := hex.EncodeToString(salt)
@@ -28,19 +21,11 @@ func saveUser(user User) *cmn.GeneralError {
 	err := gdb.Create(&user).Error
 	if err != nil {
 		log.Printf("Error while saving user! Error: %s\n", err.Error())
-		return &cmn.GeneralError{
-			Message:  "Error while saving user",
-			Location: "database.users.saveUser",
-			Cause:    err,
+		return &StatementError{
+			Message: "Error while saving user",
 		}
 	}
 	return nil
-}
-
-type usernameTakenError struct{}
-
-func (u *usernameTakenError) Error() string {
-	return "Username is taken!"
 }
 
 func generateSalt() []byte {
@@ -59,7 +44,7 @@ func encodePassword(password string, salt []byte) string {
 }
 
 // SaveNewUser - save new user in db
-func SaveNewUser(username string, password string) *cmn.GeneralError {
+func SaveNewUser(username string, password string) error {
 	user := User{
 		Username: username,
 		Password: password,
@@ -70,22 +55,18 @@ func SaveNewUser(username string, password string) *cmn.GeneralError {
 
 // GetUserByUsernameAndPassword - Get user from DB by username and verify password
 // returns (UserDto, salt)
-func GetUserByUsernameAndPassword(username string, password string) (*UserDto, string, *common.GeneralError) {
+func GetUserByUsernameAndPassword(username string, password string) (*UserDto, string, error) {
 	user := User{}
 	if gdb.Where("username = ?", username).First(&user).RecordNotFound() {
-		return nil, "", &cmn.GeneralError{
-			Message:   "Username not found",
-			Location:  "database.users.GetUserByUsernameAndPassword",
-			ErrorType: cmn.UserNotFound,
+		return nil, "", &NotFoundError{
+			Message: fmt.Sprintf("Username %s not found", username),
 		}
 	}
 	salt, _ := hex.DecodeString(user.Salt)
 	encodedPassword := encodePassword(password, salt)
 	if encodedPassword != user.Password {
-		return &UserDto{}, "", &cmn.GeneralError{
-			Message:   "Incorrect password!",
-			Location:  "database.users.GetUserByUsernameAndPassword",
-			ErrorType: cmn.IncorrectPassword,
+		return &UserDto{}, "", &UnauthorizedError{
+			Message: "Incorrect password!",
 		}
 	}
 	userDto := &UserDto{
@@ -97,24 +78,21 @@ func GetUserByUsernameAndPassword(username string, password string) (*UserDto, s
 }
 
 // GetUserSaltByUsername - Get user salt for
-func GetUserSaltByUsername(username string) (string, *common.GeneralError) {
+func GetUserSaltByUsername(username string) (string, error) {
 	user := User{}
 	if gdb.Select("salt").Where("username = ?", username).First(&user).RecordNotFound() {
-		return "", &cmn.GeneralError{
-			Message:  "Username does not exist!",
-			Location: "database.users.GetUserSaltByUsername",
+		return "", &NotFoundError{
+			Message: fmt.Sprintf("Username %s not found", username),
 		}
 	}
 	return user.Salt, nil
 }
 
-func getUserByUsername(username string) (UserDto, *common.GeneralError) {
+func getUserByUsername(username string) (UserDto, error) {
 	user := User{}
 	if gdb.Where("username = ?", username).First(&user).RecordNotFound() {
-		return UserDto{}, &common.GeneralError{
-			Message:   fmt.Sprintf("Username %s not found!", username),
-			Location:  "database.users.getUserByUsername",
-			ErrorType: common.UserNotFound,
+		return UserDto{}, &NotFoundError{
+			Message: fmt.Sprintf("Username %s not found", username),
 		}
 	}
 	return UserDto{
