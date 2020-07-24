@@ -91,7 +91,6 @@ func GetCity(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	if id, ok = getInt64FromPath(w, p, "id", "Bad value of ID"); !ok {
 		return
 	}
-	var err error
 	var maxComments int
 	if maxComments, ok = getIntFromQuery(w, r, "max-comments", -1, "Bad value for max-comments"); !ok {
 		return

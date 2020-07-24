@@ -128,7 +128,7 @@ func DeleteComment(id int64, username string) *common.GeneralError {
 
 func countCommentsForCity(cityID int64) (int, *common.GeneralError) {
 	var count int
-	if e := gdb.Where(&Comment{CityID: cityID}).Count(&count).Error; e != nil {
+	if e := gdb.Model(&Comment{}).Where(&Comment{CityID: cityID}).Count(&count).Error; e != nil {
 		log.Printf("Error while counting comments for city! Error: %s\n", e.Error())
 		return 0, &common.GeneralError{
 			Message:  "Error while counting comments for city!",
@@ -151,7 +151,7 @@ func getCommentsForCity(cityID int64, maxComments int) ([]CommentDto, *common.Ge
 		count = maxComments
 	}
 	comments := make([]CommentDto, count)
-	e := gdb.Select("comments.id, comments.text, users.username, comments.created, comments.modified").
+	e := gdb.Debug().Table("comments").Select("comments.id, comments.text, users.username, comments.created, comments.modified").
 		Joins("JOIN users ON users.id = comments.posert_id").
 		Where(&Comment{CityID: cityID}).
 		Order("created desc").

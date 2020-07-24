@@ -134,12 +134,18 @@ func AddNewCity(name string, country string) *common.GeneralError {
 
 // UpdateCity - updates a city
 func UpdateCity(id int64, name string, country string) *common.GeneralError {
-	city, _, err := GetCityByID(id, 0)
-	if err != nil {
-		return err
+	city := City{
+		ID:      id,
+		Name:    name,
+		Country: country,
 	}
-	city.Name = name
-	city.Country = country
+	if gdb.NewRecord(&city) {
+		return &common.GeneralError{
+			Message:   fmt.Sprintf("City with ID %d not found!", id),
+			Location:  "database.cities.UpdateCity",
+			ErrorType: common.CityNotFound,
+		}
+	}
 	if e := gdb.Save(&city).Error; e != nil {
 		log.Printf("Error while updating city! Error: %s\n", e.Error())
 		return &common.GeneralError{
@@ -160,7 +166,7 @@ func DeleteCity(id int64) *common.GeneralError {
 			return err
 		}
 		city := City{ID: id}
-		err = gdb.Delete(&city).Error
+		err = tx.Delete(&city).Error
 		if err != nil {
 			log.Printf("Error while reading city! Error: %s\n", err.Error())
 			return err

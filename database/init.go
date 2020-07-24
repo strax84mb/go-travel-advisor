@@ -27,7 +27,7 @@ func InitDb() {
 	if err != nil {
 		log.Fatal(err.Error())
 	}
-	gdb.AutoMigrate(&User{}, &City{}, &Comment{})
+	gdb.AutoMigrate(&User{}, &City{}, &Comment{}, &Airport{}, &Route{})
 	user := User{
 		Username: "admin",
 		Password: "admin",
@@ -37,12 +37,6 @@ func InitDb() {
 	if genErr != nil {
 		fmt.Println(genErr.Error())
 	}
-	userDto, salt, genErr := GetUserByUsernameAndPassword("admin", "admin")
-	if genErr != nil {
-		fmt.Println(genErr.Error())
-	}
-	fmt.Println(salt)
-	fmt.Println(userDto.ID)
 	/*
 		db, err = sql.Open("ramsql", "MyDataSource")
 		handleInitError("sql.Open : Error : %s\n", err)
