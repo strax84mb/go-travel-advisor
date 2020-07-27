@@ -10,8 +10,8 @@ import (
 
 // UsernamePassRequest - payload for signup and login
 type UsernamePassRequest struct {
-	Username string
-	Password string
+	Username string `validate:"nonzero,min=5,max=30,regexp=^[a-z]*$"`
+	Password string `validate:"nonzero,min=5,max=30,regexp=^[a-zA-Z0-9]*$"`
 }
 
 // SignupUser - handler for endpoint /user/signup

@@ -8,6 +8,7 @@ import (
 	"strconv"
 
 	"github.com/julienschmidt/httprouter"
+	v2 "gopkg.in/validator.v2"
 )
 
 func getBody(w http.ResponseWriter, r *http.Request, v interface{}) bool {
@@ -18,6 +19,10 @@ func getBody(w http.ResponseWriter, r *http.Request, v interface{}) bool {
 	}
 	if err = json.Unmarshal(bytes, v); err != nil {
 		http.Error(w, "Invalid payload", http.StatusBadRequest)
+		return false
+	}
+	if err = v2.Validate(v); err != nil {
+		http.Error(w, "Invalid payload"+err.Error(), http.StatusBadRequest)
 		return false
 	}
 	return true

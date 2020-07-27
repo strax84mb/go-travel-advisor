@@ -32,6 +32,11 @@ func InitDb() {
 	}
 }
 
+// SetDBForTesting - for testing purposes
+func SetDBForTesting(db *gorm.DB) {
+	gdb = db
+}
+
 func handleInitError(text string, err error) {
 	if err != nil {
 		log.Fatalf(text, err.Error())

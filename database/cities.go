@@ -23,15 +23,15 @@ func GetAllCities(maxComments int) ([]CityDto, error) {
 		}
 	}
 	result := make([]CityDto, count)
-	for i := 0; i < count; i++ {
-		comments, err := getCommentsForCity(cities[i].ID, maxComments)
+	for i, city := range cities {
+		comments, err := getCommentsForCity(city.ID, maxComments)
 		if err != nil {
 			return nil, err
 		}
 		result[i] = CityDto{
-			ID:       cities[i].ID,
-			Name:     cities[i].Name,
-			Country:  cities[i].Country,
+			ID:       city.ID,
+			Name:     city.Name,
+			Country:  city.Country,
 			Comments: comments,
 		}
 	}
