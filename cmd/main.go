@@ -37,7 +37,13 @@ func main() {
 	router.PUT("/comment/:id", h.UpdateComment)
 	router.DELETE("/comment/:id", h.DeleteComment)
 	// airport endpoints
-	//route endpoints
+	router.GET("/airport", h.ListAirports)
+	router.POST("/airport", h.AddAirport)
+	router.GET("/airport/:id", h.GetAirport)
+	router.PUT("/airport/:id", h.UpdateAirport)
+	router.DELETE("/airport", h.DeleteAirport)
+	router.POST("/airport/import", h.ImportAirports)
+	// route endpoints
 
 	log.Fatal(http.ListenAndServe(":8080", router))
 }

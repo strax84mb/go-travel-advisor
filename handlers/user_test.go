@@ -1,8 +1,11 @@
 package handlers
 
 import (
+	"encoding/csv"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strings"
 	"testing"
 
@@ -77,4 +80,15 @@ func TestSignup(t *testing.T) {
 			t.Error("Wrong status code returned!")
 		}
 	})
+}
+
+func TestCsvReading(t *testing.T) {
+	f, err := os.Open("/home/s.dobrijevic/Downloads/cities.txt")
+	defer f.Close()
+	r := csv.NewReader(f)
+	fields, err := r.Read()
+	for err == nil && fields != nil {
+		fmt.Println(fields, len(fields))
+		fields, err = r.Read()
+	}
 }

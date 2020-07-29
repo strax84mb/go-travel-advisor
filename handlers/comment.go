@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"errors"
 	"net/http"
 
 	"github.com/julienschmidt/httprouter"
@@ -26,12 +25,11 @@ func PostComment(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	}
 	err := db.AddComment(payload.Text, username, payload.CityID)
 	if err != nil {
-		var nfe *db.NotFoundError
-		if errors.As(err, &nfe) {
-			http.Error(w, nfe.Error(), http.StatusNotFound)
-		} else {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-		}
+		handleErrors(w, err, err,
+			errorHandling{
+				err:    &db.NotFoundError{},
+				status: http.StatusNotFound,
+			})
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
@@ -53,15 +51,15 @@ func UpdateComment(w http.ResponseWriter, r *http.Request, p httprouter.Params) 
 	}
 	err := db.UpdateComment(id, payload.Text, username, payload.CityID)
 	if err != nil {
-		var nfe *db.NotFoundError
-		var fe *db.ForbidenError
-		if errors.As(err, &nfe) {
-			http.Error(w, nfe.Error(), http.StatusNotFound)
-		} else if errors.As(err, &fe) {
-			http.Error(w, fe.Error(), http.StatusForbidden)
-		} else {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-		}
+		handleErrors(w, err, err,
+			errorHandling{
+				err:    &db.NotFoundError{},
+				status: http.StatusNotFound,
+			},
+			errorHandling{
+				err:    &db.ForbidenError{},
+				status: http.StatusForbidden,
+			})
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
@@ -83,15 +81,15 @@ func DeleteComment(w http.ResponseWriter, r *http.Request, p httprouter.Params) 
 	}
 	err := db.DeleteComment(id, username)
 	if err != nil {
-		var nfe *db.NotFoundError
-		var fe *db.ForbidenError
-		if errors.As(err, &nfe) {
-			http.Error(w, nfe.Error(), http.StatusNotFound)
-		} else if errors.As(err, &fe) {
-			http.Error(w, fe.Error(), http.StatusForbidden)
-		} else {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-		}
+		handleErrors(w, err, err,
+			errorHandling{
+				err:    &db.NotFoundError{},
+				status: http.StatusNotFound,
+			},
+			errorHandling{
+				err:    &db.ForbidenError{},
+				status: http.StatusForbidden,
+			})
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)

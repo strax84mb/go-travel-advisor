@@ -1,11 +1,13 @@
 package handlers
 
 import (
-	"errors"
+	"log"
 	"net/http"
+	"time"
 
 	"github.com/julienschmidt/httprouter"
 	db "gitlab.strale.io/go-travel/database"
+	"gitlab.strale.io/go-travel/importing"
 )
 
 // WriteCityPayload - payload for adding and updating a city
@@ -26,12 +28,11 @@ func AddCity(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	}
 	err := db.AddNewCity(payload.Name, payload.Country)
 	if err != nil {
-		var fe *db.ForbidenError
-		if errors.As(err, &fe) {
-			http.Error(w, fe.Error(), http.StatusForbidden)
-		} else {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-		}
+		handleErrors(w, err, err,
+			errorHandling{
+				err:    &db.ForbidenError{},
+				status: http.StatusForbidden,
+			})
 		return
 	}
 	// respond with success
@@ -55,12 +56,11 @@ func UpdateCity(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	}
 	err := db.UpdateCity(id, payload.Name, payload.Country)
 	if err != nil {
-		var nfe *db.NotFoundError
-		if errors.As(err, &nfe) {
-			http.Error(w, nfe.Error(), http.StatusNotFound)
-		} else {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-		}
+		handleErrors(w, err, err,
+			errorHandling{
+				err:    &db.NotFoundError{},
+				status: http.StatusNotFound,
+			})
 		return
 	}
 	// respond with success
@@ -80,12 +80,11 @@ func DeleteCity(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	}
 	err := db.DeleteCity(id)
 	if err != nil {
-		var nfe *db.NotFoundError
-		if errors.As(err, &nfe) {
-			http.Error(w, nfe.Error(), http.StatusNotFound)
-		} else {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-		}
+		handleErrors(w, err, err,
+			errorHandling{
+				err:    &db.NotFoundError{},
+				status: http.StatusNotFound,
+			})
 		return
 	}
 	// respond with success
@@ -109,12 +108,11 @@ func GetCity(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	}
 	city, _, err := db.GetCityByID(id, maxComments)
 	if err != nil {
-		var nfe *db.NotFoundError
-		if errors.As(err, &nfe) {
-			http.Error(w, nfe.Error(), http.StatusNotFound)
-		} else {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-		}
+		handleErrors(w, err, err,
+			errorHandling{
+				err:    &db.NotFoundError{},
+				status: http.StatusNotFound,
+			})
 		return
 	}
 	serializeResponse(w, city)
@@ -139,5 +137,58 @@ func GetAllCities(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	serializeResponse(w, cities)
 }
 
+const (
+	cityName    = "name"
+	cityCountry = "country"
+)
+
 // ImportCities - import cities from CSV
-func ImportCities(w http.ResponseWriter, r *http.Request, p httprouter.Params) {}
+func ImportCities(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+	defer r.Body.Close()
+	if _, ok := checkJwt(w, r, db.UserRoleAdmin); !ok {
+		return
+	}
+	var nameIndex, countryIndex int
+	var ok bool
+	if nameIndex, ok = getIntFromHeader(w, r, cityName, "Must have header \"name\" and it must be a nonnegative number!"); !ok {
+		return
+	}
+	if countryIndex, ok = getIntFromHeader(w, r, cityCountry, "Must have header \"country\" and it must be a nonnegative number!"); !ok {
+		return
+	}
+	mapping := importing.FieldMapping{
+		cityName:    nameIndex,
+		cityCountry: countryIndex,
+	}
+	im := importing.Importer{
+		NumberOfChannels:  5,
+		ChannelBufferSize: 50,
+		Comma:             ',',
+		Comment:           '"',
+		Mapping:           mapping,
+		Timestamp:         time.Now(),
+		ParseRow:          parseCityRow,
+		EntitySaver:       cityEntitySaver,
+	}
+	im.Parse(r.Body)
+	w.WriteHeader(http.StatusNoContent)
+	return
+}
+
+func parseCityRow(fields []string, mapping importing.FieldMapping) (interface{}, error) {
+	city := db.City{
+		Name:    fields[mapping[cityName]],
+		Country: fields[mapping[cityCountry]],
+	}
+	defer func() {
+		if err := recover(); err != nil {
+			log.Println("[Parsing error]", err)
+		}
+	}()
+	return city, nil
+}
+
+func cityEntitySaver(entity interface{}) error {
+	city := entity.(db.City)
+	return db.AddNewCity(city.Name, city.Country)
+}

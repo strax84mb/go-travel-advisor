@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"errors"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -70,4 +71,41 @@ func getIntFromQuery(w http.ResponseWriter, r *http.Request, varName string, def
 		return value, true
 	}
 	return defaultValue, true
+}
+
+func getIntFromHeader(w http.ResponseWriter, r *http.Request, varName string, errorText string) (int, bool) {
+	valueString := r.Header.Get(varName)
+	if valueString == "" {
+		http.Error(w, errorText, http.StatusBadRequest)
+		return 0, false
+	}
+	value, err := strconv.Atoi(valueString)
+	if err != nil || value < 0 {
+		log.Printf("Error while converting header value %s to int! Error: %s", varName, err.Error())
+		http.Error(w, errorText, http.StatusBadRequest)
+		return 0, false
+	}
+	return value, true
+}
+
+type errorHandling struct {
+	err               error
+	status            int
+	substituteMessage string
+}
+
+func handleErrors(w http.ResponseWriter, defaultError error, chainError error, handlings ...errorHandling) {
+	if handlings != nil || len(handlings) > 0 {
+		for _, h := range handlings {
+			if errors.As(chainError, &h.err) {
+				if h.substituteMessage == "" {
+					http.Error(w, h.err.Error(), h.status)
+				} else {
+					http.Error(w, h.substituteMessage, h.status)
+				}
+				return
+			}
+		}
+	}
+	http.Error(w, defaultError.Error(), http.StatusInternalServerError)
 }

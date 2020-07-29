@@ -28,9 +28,10 @@ type CityDto struct {
 
 // AirportDto - airport object to expose
 type AirportDto struct {
-	ID   int64
-	Name string
-	City CityDto
+	ID        int64
+	AirportID int64
+	Name      string
+	City      CityDto
 }
 
 // RouteDto - route object to expose
