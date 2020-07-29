@@ -185,3 +185,13 @@ func ListAirports() ([]AirportDto, error) {
 	}
 	return result, nil
 }
+
+// ImportSingleAirport - import single airport data
+func ImportSingleAirport(airportID int64, name string, cityName string, cityCountry string) error {
+	city, err := getCityByNameAndCountry(cityName, cityCountry)
+	if err != nil {
+		return err
+	}
+	_, err = SaveAirport(airportID, name, city.ID)
+	return err
+}
