@@ -73,6 +73,19 @@ func getIntFromQuery(w http.ResponseWriter, r *http.Request, varName string, def
 	return defaultValue, true
 }
 
+func getInt64FromQuery(w http.ResponseWriter, r *http.Request, varName string, defaultValue int64, errorText string) (int64, bool) {
+	valueString, ok := r.URL.Query()[varName]
+	if ok {
+		value, err := strconv.ParseInt(valueString[0], 10, 64)
+		if err != nil {
+			http.Error(w, errorText, http.StatusBadRequest)
+			return 0, false
+		}
+		return value, true
+	}
+	return defaultValue, true
+}
+
 func getIntFromHeader(w http.ResponseWriter, r *http.Request, varName string, errorText string) (int, bool) {
 	valueString := r.Header.Get(varName)
 	if valueString == "" {

@@ -41,3 +41,18 @@ type RouteDto struct {
 	Destination AirportDto
 	price       float32
 }
+
+// PathRouteDto - every airport in path
+type PathRouteDto struct {
+	RouteID int64
+	Airport string
+	City    string
+	Country string
+}
+
+// PathDto - planned path
+type PathDto struct {
+	sumPrice float32
+	start    PathRouteDto
+	flights  []PathRouteDto
+}

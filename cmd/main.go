@@ -44,6 +44,8 @@ func main() {
 	router.DELETE("/airport", h.DeleteAirport)
 	router.POST("/airport/import", h.ImportAirports)
 	// route endpoints
+	router.POST("/route/import", h.ImportRoutes)
+	router.GET("/route/search", h.PlanRoute)
 
 	log.Fatal(http.ListenAndServe(":8080", router))
 }
