@@ -2,6 +2,7 @@ package database
 
 import (
 	"fmt"
+	"math"
 )
 
 // SaveRoute - save new route
@@ -214,9 +215,11 @@ func FindCheapesRoute(start int64, end int64) (PathDto, error) {
 	}
 	root := routeTreeNode{}
 	root.initFirst(startAirport.ID)
+
 	rt := routeTree{
 		destinationID: endAirport.ID,
 		root:          &root,
+		cheapestPrice: math.MaxFloat32,
 	}
 	pathDto, err := rt.searchCheapestPath()
 	if err != nil {
