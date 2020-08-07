@@ -18,7 +18,7 @@ func saveUser(user User) error {
 	hashedPassword := encodePassword(user.Password, salt)
 	user.Salt = hexSalt
 	user.Password = hashedPassword
-	err := gdb.Create(&user).Error
+	err := gdb.Create(&user).Error()
 	if err != nil {
 		log.Printf("Error while saving user! Error: %s\n", err.Error())
 		return &StatementError{

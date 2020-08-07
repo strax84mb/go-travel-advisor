@@ -16,7 +16,7 @@ func GetAllCities(maxComments int) ([]CityDto, error) {
 		return nil, err
 	}
 	cities := make([]City, count)
-	if e := gdb.Find(&cities).Error; e != nil {
+	if e := gdb.Find(&cities).Error(); e != nil {
 		log.Printf("Error while reading all cities! Error: %s\n", e.Error())
 		return nil, &StatementError{
 			Message: "Error while reading all cities!",
@@ -40,7 +40,7 @@ func GetAllCities(maxComments int) ([]CityDto, error) {
 
 func countAllCities() (int, error) {
 	var count int
-	if err := gdb.Model(&City{}).Count(&count).Error; err != nil {
+	if err := gdb.Model(&City{}).Count(&count).Error(); err != nil {
 		log.Printf("Error while counting cities! Error: %s\n", err.Error())
 		return 0, &StatementError{
 			Message: "Error while counting cities!",
@@ -53,13 +53,13 @@ func countAllCities() (int, error) {
 func GetCityByID(id int64, maxComments int) (CityDto, bool, error) {
 	city := City{}
 	currDB := gdb.First(&city, id)
-	if currDB.Error != nil {
+	if currDB.Error() != nil {
 		if currDB.RecordNotFound() {
 			return CityDto{}, false, &NotFoundError{
 				Message: fmt.Sprintf("City with ID %d not found!", id),
 			}
 		}
-		log.Printf("Error while reading city! Error: %s\n", currDB.Error.Error())
+		log.Printf("Error while reading city! Error: %s\n", currDB.Error().Error())
 		return CityDto{}, false, &StatementError{
 			Message: "Error while reading city!",
 		}
@@ -80,13 +80,13 @@ func GetCityByID(id int64, maxComments int) (CityDto, bool, error) {
 func getCityByNameAndCountry(name string, country string) (CityDto, error) {
 	city := City{}
 	currDB := gdb.Where("LOWER(name) = LOWER(?) AND LOWER(country) = LOWER(?)", name, country).First(&city)
-	if currDB.Error != nil {
+	if currDB.Error() != nil {
 		if currDB.RecordNotFound() {
 			return CityDto{}, &NotFoundError{
 				Message: fmt.Sprintf("City with name %s in country %s not found!", name, country),
 			}
 		}
-		log.Printf("Error while reading city! Error: %s\n", currDB.Error.Error())
+		log.Printf("Error while reading city! Error: %s\n", currDB.Error().Error())
 		return CityDto{}, &StatementError{
 			Message: "Error while reading city!",
 		}
@@ -113,7 +113,7 @@ func AddNewCity(name string, country string) error {
 		Name:    name,
 		Country: country,
 	}
-	if e := gdb.Create(&city).Error; e != nil {
+	if e := gdb.Create(&city).Error(); e != nil {
 		log.Printf("Error while saving city! Error: %s\n", e.Error())
 		return &StatementError{
 			Message: "Error while saving city!",
@@ -134,7 +134,7 @@ func UpdateCity(id int64, name string, country string) error {
 			Message: fmt.Sprintf("City with ID %d not found!", id),
 		}
 	}
-	if e := gdb.Save(&city).Error; e != nil {
+	if e := gdb.Save(&city).Error(); e != nil {
 		log.Printf("Error while updating city! Error: %s\n", e.Error())
 		return &StatementError{
 			Message: "Error while updating city!",
@@ -146,24 +146,28 @@ func UpdateCity(id int64, name string, country string) error {
 // DeleteCity - delete a city with given ID
 func DeleteCity(id int64) error {
 	return gdb.Transaction(func(tx *gorm.DB) error {
-		err := deleteCommentsForCity(id, tx)
-		if err != nil {
-			return err
-		}
-		city := City{ID: id}
-		curdb := tx.Delete(&city)
-		if curdb.RowsAffected == 0 {
-			return &NotFoundError{
-				Message: fmt.Sprintf("City with ID %d not found!", id),
-			}
-		}
-		err = curdb.Error
-		if err != nil {
-			log.Printf("Error while deleting city! Error: %s\n", err.Error())
-			return &StatementError{
-				Message: "Error while deleting city!",
-			}
-		}
-		return nil
+		return deleteCityInTransaction(id, &dbWrapperImpl{tx})
 	})
+}
+
+func deleteCityInTransaction(id int64, tx dbWrapper) error {
+	err := deleteCommentsForCity(id, tx)
+	if err != nil {
+		return err
+	}
+	city := City{ID: id}
+	curdb := tx.Delete(&city)
+	if curdb.RowsAffected() == 0 {
+		return &NotFoundError{
+			Message: fmt.Sprintf("City with ID %d not found!", id),
+		}
+	}
+	err = curdb.Error()
+	if err != nil {
+		log.Printf("Error while deleting city! Error: %s\n", err.Error())
+		return &StatementError{
+			Message: "Error while deleting city!",
+		}
+	}
+	return nil
 }

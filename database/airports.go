@@ -29,7 +29,7 @@ func SaveAirport(airportID int64, name string, cityID int64) (AirportDto, error)
 		Name:      name,
 		AirportID: airportID,
 	}
-	if err = gdb.Create(&airport).Error; err != nil {
+	if err = gdb.Create(&airport).Error(); err != nil {
 		return AirportDto{}, &StatementError{
 			Message: "Error while saving airport",
 			Cause:   err,
@@ -69,7 +69,7 @@ func UpdateAirport(id int64, airportID int64, name string, cityID int64) (Airpor
 	airport.Name = name
 	airport.CityID = cityID
 	airport.City = City{}
-	if err = gdb.Save(&airport).Error; err != nil {
+	if err = gdb.Save(&airport).Error(); err != nil {
 		return AirportDto{}, &StatementError{
 			Message: "Error while updating airport data",
 			Cause:   err,
@@ -83,11 +83,11 @@ func DeleteAirport(id int64) error {
 	curDB := gdb.Delete(&Airport{ID: id})
 	if curDB.RecordNotFound() {
 		return airportNotFoundError(id)
-	} else if curDB.Error != nil {
-		log.Printf("Error while deleting airport with ID %d! Error: %s", id, curDB.Error.Error())
+	} else if curDB.Error() != nil {
+		log.Printf("Error while deleting airport with ID %d! Error: %s", id, curDB.Error().Error())
 		return &StatementError{
 			Message: fmt.Sprintf("Error while deleting airport with ID %d", id),
-			Cause:   gdb.Error,
+			Cause:   gdb.Error(),
 		}
 	}
 	return nil
@@ -98,11 +98,11 @@ func loadAirportByAirportID(airportID int64) (Airport, error) {
 	curDB := gdb.Where(&Airport{AirportID: airportID}).First(&airport)
 	if curDB.RecordNotFound() {
 		return Airport{}, &NotFoundError{Message: fmt.Sprintf("Airport with AirportID %d not found", airportID)}
-	} else if curDB.Error != nil {
-		log.Printf("Error while loading airport with AirportID %d! Error: %s", airportID, curDB.Error.Error())
+	} else if curDB.Error() != nil {
+		log.Printf("Error while loading airport with AirportID %d! Error: %s", airportID, curDB.Error().Error())
 		return Airport{}, &StatementError{
 			Message: fmt.Sprintf("Error while loading airport with AirportID %d", airportID),
-			Cause:   curDB.Error,
+			Cause:   curDB.Error(),
 		}
 	}
 	return airport, nil
@@ -113,11 +113,11 @@ func loadAirport(id int64) (Airport, error) {
 	curDB := gdb.First(&airport, id)
 	if curDB.RecordNotFound() {
 		return Airport{}, airportNotFoundError(id)
-	} else if curDB.Error != nil {
-		log.Printf("Error while loading airport with ID %d! Error: %s", id, curDB.Error.Error())
+	} else if curDB.Error() != nil {
+		log.Printf("Error while loading airport with ID %d! Error: %s", id, curDB.Error().Error())
 		return Airport{}, &StatementError{
 			Message: fmt.Sprintf("Error while loading airport with ID %d", id),
-			Cause:   curDB.Error,
+			Cause:   curDB.Error(),
 		}
 	}
 	return airport, nil
@@ -147,7 +147,7 @@ func GetAirport(id int64) (AirportDto, error) {
 
 func countAllAirports() (int, error) {
 	var count int
-	if err := gdb.Model(&Airport{}).Count(&count).Error; err != nil {
+	if err := gdb.Model(&Airport{}).Count(&count).Error(); err != nil {
 		log.Printf("Error while counting all airports! Error: %s", err.Error())
 		return 0, &StatementError{
 			Message: "Error while counting all airports",
@@ -164,7 +164,7 @@ func ListAirports() ([]AirportDto, error) {
 		return nil, err
 	}
 	airports := make([]Airport, count)
-	if err := gdb.Preload("City").Find(&airports).Error; err != nil {
+	if err := gdb.Preload("City").Find(&airports).Error(); err != nil {
 		return nil, &StatementError{
 			Message: "Error while loading all airports",
 			Cause:   err,

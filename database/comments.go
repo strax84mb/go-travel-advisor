@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"log"
 	"time"
-
-	"github.com/jinzhu/gorm"
 )
 
 // AddComment - saving a new comment
@@ -26,7 +24,7 @@ func AddComment(text string, username string, cityID int64) error {
 		PosterID: user.ID,
 		Text:     text,
 	}
-	if e := gdb.Create(&comment).Error; e != nil {
+	if e := gdb.Create(&comment).Error(); e != nil {
 		log.Printf("Error while saving comment! Error: %s\n", e.Error())
 		return &StatementError{
 			Message: "Error while saving comment!",
@@ -38,13 +36,13 @@ func AddComment(text string, username string, cityID int64) error {
 func getCommentByID(id int64) (Comment, error) {
 	comment := Comment{}
 	curDB := gdb.Find(&comment, id)
-	if curDB.Error != nil {
+	if curDB.Error() != nil {
 		if curDB.RecordNotFound() {
 			return Comment{}, &NotFoundError{
 				Message: fmt.Sprintf("Comment with ID %d not found!", id),
 			}
 		}
-		log.Printf("Error while reading comment! Error: %s\n", curDB.Error.Error())
+		log.Printf("Error while reading comment! Error: %s\n", curDB.Error().Error())
 		return Comment{}, &StatementError{
 			Message: "Error while reading comment!",
 		}
@@ -78,7 +76,7 @@ func UpdateComment(id int64, text string, username string, cityID int64) error {
 	now := time.Now()
 	comment.Text = text
 	comment.Modified = &now
-	if e := gdb.Save(&comment).Error; e != nil {
+	if e := gdb.Save(&comment).Error(); e != nil {
 		log.Printf("Error while updating comment! Error: %s\n", e.Error())
 		return &StatementError{
 			Message: "Error while updating comment!",
@@ -103,7 +101,7 @@ func DeleteComment(id int64, username string) error {
 			Message: "Comment may be changed by admin or original poster only!",
 		}
 	}
-	if e := gdb.Delete(&Comment{ID: id}).Error; e != nil {
+	if e := gdb.Delete(&Comment{ID: id}).Error(); e != nil {
 		log.Printf("Error while deleting comment! Error: %s\n", e.Error())
 		return &StatementError{
 			Message: "Error while deleting comment!",
@@ -114,7 +112,7 @@ func DeleteComment(id int64, username string) error {
 
 func countCommentsForCity(cityID int64) (int, error) {
 	var count int
-	if e := gdb.Model(&Comment{}).Where(&Comment{CityID: cityID}).Count(&count).Error; e != nil {
+	if e := gdb.Model(&Comment{}).Where(&Comment{CityID: cityID}).Count(&count).Error(); e != nil {
 		log.Printf("Error while counting comments for city! Error: %s\n", e.Error())
 		return 0, &StatementError{
 			Message: "Error while counting comments for city!",
@@ -135,12 +133,12 @@ func getCommentsForCity(cityID int64, maxComments int) ([]CommentDto, error) {
 		count = maxComments
 	}
 	comments := make([]CommentDto, count)
-	e := gdb.Debug().Table("comments").Select("comments.id, comments.text, users.username, comments.created, comments.modified").
+	e := gdb.Table("comments").Select("comments.id, comments.text, users.username, comments.created, comments.modified").
 		Joins("JOIN users ON users.id = comments.posert_id").
 		Where(&Comment{CityID: cityID}).
 		Order("created desc").
 		Limit(count).
-		Find(&comments).Error
+		Find(&comments).Error()
 	if e != nil {
 		log.Printf("Error while fetching comments for city! Error: %s\n", e.Error())
 		return nil, &StatementError{
@@ -150,8 +148,8 @@ func getCommentsForCity(cityID int64, maxComments int) ([]CommentDto, error) {
 	return comments, nil
 }
 
-func deleteCommentsForCity(cityID int64, tx *gorm.DB) error {
-	if err := tx.Where(&Comment{CityID: cityID}).Delete(&Comment{}).Error; err != nil {
+func deleteCommentsForCity(cityID int64, tx dbWrapper) error {
+	if err := tx.Where(&Comment{CityID: cityID}).Delete(&Comment{}).Error(); err != nil {
 		log.Printf("Error while deleting comments for city with ID %d! Error: %s\n", cityID, err.Error())
 		return &StatementError{
 			Message: "Error while deleting comments for city!",

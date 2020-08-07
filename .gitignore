@@ -1,2 +1,3 @@
 .vscode
 cmd/test.db
+build

@@ -20,7 +20,7 @@ func SaveRoute(sourceID int64, destinationID int64, price float32) error {
 		DestinationID: destination.ID,
 		Price:         price,
 	}
-	if gdb.Create(&route).Error != nil {
+	if gdb.Create(&route).Error() != nil {
 		return err
 	}
 	return nil
@@ -168,12 +168,12 @@ func (r routeTree) destroy() {
 func findBySourceIDAndDestinationIDNotIn(start int64, excludedDestinations []int64) ([]Route, error) {
 	var count int
 	if err := gdb.Model(&Route{}).Where("source_id = ? AND destination_id NOT IN (?)", &start, &excludedDestinations).
-		Count(&count).Error; err != nil {
+		Count(&count).Error(); err != nil {
 		return nil, fmt.Errorf("Error while counting for start %d. Error: %s", start, err.Error())
 	}
 	result := make([]Route, count)
 	if err := gdb.Where("source_id = ? AND destination_id NOT IN (?)", &start, &excludedDestinations).
-		Find(&result).Error; err != nil {
+		Find(&result).Error(); err != nil {
 		return nil, fmt.Errorf("Error while loading destinations for start %d. Error: %s", start, err.Error())
 	}
 	return result, nil
@@ -184,7 +184,7 @@ func loadFullRoutes(ids []int64) ([]Route, error) {
 	if err := gdb.Where("id IN(?)", &ids).
 		Preload("Source").Preload("Source.City").
 		Preload("Destination").Preload("Destination.City").
-		Find(&routes).Error; err != nil {
+		Find(&routes).Error(); err != nil {
 		return nil, err
 	}
 	result := make([]Route, len(ids))
