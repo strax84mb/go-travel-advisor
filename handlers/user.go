@@ -8,6 +8,8 @@ import (
 	db "gitlab.strale.io/go-travel/database"
 )
 
+//go:generate ffjson $GOFILE
+
 // UsernamePassRequest - payload for signup and login
 type UsernamePassRequest struct {
 	Username string `validate:"nonzero,min=5,max=30,regexp=^[a-z]*$"`

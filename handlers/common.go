@@ -9,6 +9,7 @@ import (
 	"strconv"
 
 	"github.com/julienschmidt/httprouter"
+	"github.com/pquerna/ffjson/ffjson"
 	v2 "gopkg.in/validator.v2"
 )
 
@@ -18,7 +19,7 @@ func getBody(w http.ResponseWriter, r *http.Request, v interface{}) bool {
 		http.Error(w, "Error reading payload", http.StatusBadRequest)
 		return false
 	}
-	if err = json.Unmarshal(bytes, v); err != nil {
+	if err = ffjson.Unmarshal(bytes, v); err != nil {
 		http.Error(w, "Invalid payload", http.StatusBadRequest)
 		return false
 	}
