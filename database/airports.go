@@ -18,7 +18,8 @@ func SaveAirport(airportID int64, name string, cityID int64) (AirportDto, error)
 			Message: fmt.Sprintf("Airport with AirportID %d is already saved", airportID),
 		}
 	}
-	if !errors.As(err, &NotFoundError{}) {
+	var nfe *NotFoundError
+	if !errors.As(err, &nfe) {
 		return AirportDto{}, &StatementError{
 			Message: fmt.Sprintf("Error while checking if AirportID %d is already taken", airportID),
 			Cause:   err,
@@ -54,7 +55,8 @@ func UpdateAirport(id int64, airportID int64, name string, cityID int64) (Airpor
 	}
 	airportWithAirportID, err := loadAirportByAirportID(airportID)
 	if err != nil {
-		if !errors.As(err, &NotFoundError{}) {
+		var nfe *NotFoundError
+		if !errors.As(err, &nfe) {
 			return AirportDto{}, &StatementError{
 				Message: fmt.Sprintf("Error while checking if AirportID %d is already taken by another airport", airportID),
 				Cause:   err,
