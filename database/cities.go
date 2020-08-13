@@ -102,11 +102,12 @@ func getCityByNameAndCountry(name string, country string) (CityDto, error) {
 // AddNewCity - save new city
 func AddNewCity(name string, country string) error {
 	_, err := getCityByNameAndCountry(name, country)
+	var nfe *NotFoundError
 	if err == nil {
 		return &ForbidenError{
 			Message: fmt.Sprintf("City with name %s in country %s is already saved!", name, country),
 		}
-	} else if !errors.As(err, &NotFoundError{}) {
+	} else if !errors.As(err, &nfe) {
 		return err
 	}
 	city := City{

@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"encoding/json"
 	"errors"
 	"io/ioutil"
 	"log"
@@ -42,7 +41,7 @@ func checkJwt(w http.ResponseWriter, r *http.Request, role string) (string, bool
 }
 
 func serializeResponse(w http.ResponseWriter, payload interface{}) {
-	payloadBytes, err := json.Marshal(payload)
+	payloadBytes, err := ffjson.Marshal(payload)
 	if err != nil {
 		log.Printf("Error while marshaling response: %s\n", err.Error())
 		http.Error(w, "Error while marshaling response", http.StatusInternalServerError)
