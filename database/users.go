@@ -1,16 +1,26 @@
 package database
 
 import (
+	"context"
 	"crypto/sha512"
+	"database/sql"
 	"encoding/hex"
 	"fmt"
 	"log"
 	"math/rand"
 	"time"
+
+	"github.com/volatiletech/sqlboiler/v4/boil"
+	"gitlab.strale.io/go-travel/models"
 )
 
-func saveUser(user User) error {
-	if !gdb.First(&User{}, "username = ?", user.Username).RecordNotFound() {
+func saveUser(user models.User) error {
+	found, err := models.Users(models.UserWhere.Username.EQ(user.Username)).Exists(context.Background(), db)
+	if err != nil {
+		return &StatementError{
+			Message: "Error while if usernbame is available",
+		}
+	} else if found {
 		return &UsernameTakenError{}
 	}
 	salt := generateSalt()
@@ -18,7 +28,9 @@ func saveUser(user User) error {
 	hashedPassword := encodePassword(user.Password, salt)
 	user.Salt = hexSalt
 	user.Password = hashedPassword
-	err := gdb.Create(&user).Error()
+	log.Println(hexSalt)
+	log.Println(hashedPassword)
+	err = user.Insert(context.Background(), db, boil.Infer())
 	if err != nil {
 		log.Printf("Error while saving user! Error: %s\n", err.Error())
 		return &StatementError{
@@ -45,7 +57,7 @@ func encodePassword(password string, salt []byte) string {
 
 // SaveNewUser - save new user in db
 func SaveNewUser(username string, password string) error {
-	user := User{
+	user := models.User{
 		Username: username,
 		Password: password,
 		Role:     UserRoleUser,
@@ -56,8 +68,8 @@ func SaveNewUser(username string, password string) error {
 // GetUserByUsernameAndPassword - Get user from DB by username and verify password
 // returns (UserDto, salt)
 func GetUserByUsernameAndPassword(username string, password string) (*UserDto, string, error) {
-	user := User{}
-	if gdb.Where("username = ?", username).First(&user).RecordNotFound() {
+	user, err := models.Users(models.UserWhere.Username.EQ(username)).One(context.Background(), db)
+	if err != nil && err == sql.ErrNoRows {
 		return nil, "", &NotFoundError{
 			Message: fmt.Sprintf("Username %s not found", username),
 		}
@@ -79,8 +91,8 @@ func GetUserByUsernameAndPassword(username string, password string) (*UserDto, s
 
 // GetUserSaltByUsername - Get user salt for
 func GetUserSaltByUsername(username string) (string, error) {
-	user := User{}
-	if gdb.Select("salt").Where("username = ?", username).First(&user).RecordNotFound() {
+	user, err := models.Users(models.UserWhere.Username.EQ(username)).One(context.Background(), db)
+	if err != nil && err == sql.ErrNoRows {
 		return "", &NotFoundError{
 			Message: fmt.Sprintf("Username %s not found", username),
 		}
@@ -89,8 +101,8 @@ func GetUserSaltByUsername(username string) (string, error) {
 }
 
 func getUserByUsername(username string) (UserDto, error) {
-	user := User{}
-	if gdb.Where("username = ?", username).First(&user).RecordNotFound() {
+	user, err := models.Users(models.UserWhere.Username.EQ(username)).One(context.Background(), db)
+	if err != nil && err == sql.ErrNoRows {
 		return UserDto{}, &NotFoundError{
 			Message: fmt.Sprintf("Username %s not found", username),
 		}

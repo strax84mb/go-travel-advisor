@@ -6,9 +6,8 @@ import (
 	"strings"
 	"time"
 
-	"gitlab.strale.io/go-travel/database"
-
-	jwt "github.com/dgrijalva/jwt-go"
+	"github.com/dgrijalva/jwt-go"
+	db "gitlab.strale.io/go-travel/database"
 )
 
 func generateJwt(username string, role string, salt string) (string, error) {
@@ -47,7 +46,7 @@ func validateJwt(header string, expectedRole string) (string, error) {
 	token, err := jwt.Parse(strings.TrimPrefix(header, "Bearer "), func(token *jwt.Token) (interface{}, error) {
 		claims := token.Claims.(jwt.MapClaims)
 		username := claims["sub"].(string)
-		salt, err := database.GetUserSaltByUsername(username)
+		salt, err := db.GetUserSaltByUsername(username)
 		if err != nil {
 			return []byte{}, err
 		}

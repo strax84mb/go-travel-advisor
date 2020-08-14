@@ -1,38 +1,41 @@
 package database
 
 import (
-	"fmt"
+	"database/sql"
 	"log"
-	"os"
 
-	"github.com/jinzhu/gorm"
 	// Used to initiate DB
-	_ "github.com/jinzhu/gorm/dialects/sqlite"
+	//_ "github.com/jinzhu/gorm/dialects/sqlite"
+	_ "github.com/volatiletech/sqlboiler-sqlite3/driver"
 )
 
-var gdb dbWrapper
+//var gdb dbWrapper
+
+var db *sql.DB
 
 // InitDb - Used to initialize DB
 func InitDb() {
 	var err error
-	os.Remove("test.db")
-	initDB, err := gorm.Open("sqlite3", "file::memory:?cache=shared")
+	//os.Remove("test.db")
+	db, err = sql.Open("sqlite3", "../mydb.sqlt")
 	if err != nil {
 		log.Fatal(err.Error())
 	}
-	gdb = &dbWrapperImpl{initDB}
-	gdb.AutoMigrate(&User{}, &City{}, &Comment{}, &Airport{}, &Route{})
-	user := User{
-		Username: "admin",
-		Password: "admin",
-		Role:     UserRoleAdmin,
-	}
-	genErr := saveUser(user)
-	if genErr != nil {
-		fmt.Println(genErr.Error())
-	}
+	/*
+		gdb = &dbWrapperImpl{initDB}
+		gdb.AutoMigrate(&User{}, &City{}, &Comment{}, &Airport{}, &Route{})
+		user := User{
+			Username: "admin",
+			Password: "admin",
+			Role:     UserRoleAdmin,
+		}
+		genErr := saveUser(user)
+		if genErr != nil {
+			fmt.Println(genErr.Error())
+		}*/
 }
 
+/*
 // SetDBForTesting - for testing purposes
 func SetDBForTesting(db *gorm.DB) {
 	//gdb = db
@@ -149,3 +152,4 @@ func (db *dbWrapperImpl) Transaction(txfunc func(*gorm.DB) error) error {
 func (db *dbWrapperImpl) RowsAffected() int64 {
 	return db.db.RowsAffected
 }
+*/

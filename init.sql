@@ -1,0 +1,62 @@
+DROP TABLE IF EXISTS routes;
+DROP TABLE IF EXISTS airports;
+DROP TABLE IF EXISTS comments;
+DROP TABLE IF EXISTS cities;
+DROP INDEX IF EXISTS idx_users_username;
+DROP TABLE IF EXISTS users;
+
+CREATE TABLE users (
+    id INTEGER NOT NULL PRIMARY KEY,
+	username VARCHAR(30) UNIQUE NOT NULL,
+	`password` VARCHAR(200) NOT NULL,
+	salt VARCHAR(100) NOT NULL,
+	`role` VARCHAR(15) NOT NULL
+);
+
+CREATE UNIQUE INDEX idx_users_username ON users(username);
+
+INSERT INTO users (username, `password`, salt, `role`) VALUES 
+    ('admin', 
+    '92766f4ade6d45666bd4c26798a39c974874c118bd4d95815b62a548988fd7db33060246e2555bf93328d5dfabd3ffbd799efafbe4b9e775ca46d005fe0932072857d6e63173fa2c41ccd10d194bfef8', 
+    '92766f4ade6d45666bd4c26798a39c97',
+    'ADMIN');
+
+CREATE TABLE cities (
+    id INTEGER NOT NULL PRIMARY KEY,
+    `name` VARCHAR(100) NOT NULL,
+    country VARCHAR(100) NOT NULL
+);
+
+
+CREATE TABLE comments (
+    id INTEGER NOT NULL PRIMARY KEY,
+    city_id BIGINT NOT NULL,
+    poster_id BIGINT NOT NULL,
+    `text` VARCHAR(255) NOT NULL,
+    created DATETIME NOT NULL,
+    modified DATETIME NOT NULL,
+    FOREIGN KEY (city_id) REFERENCES cities(id)
+        ON DELETE CASCADE ON UPDATE NO ACTION,
+    FOREIGN KEY (poster_id) REFERENCES users(id)
+        ON DELETE CASCADE ON UPDATE NO ACTION
+);
+
+CREATE TABLE airports (
+    id INTEGER NOT NULL PRIMARY KEY,
+    airport_id BIGINT UNIQUE NOT NULL,
+    `name` VARCHAR(100) NOT NULL,
+    city_id BIGINT NOT NULL,
+    FOREIGN KEY (city_id) REFERENCES cities(id)
+        ON DELETE NO ACTION ON UPDATE NO ACTION
+);
+
+CREATE TABLE routes (
+    id INTEGER NOT NULL PRIMARY KEY,
+    source_id BIGINT NOT NULL,
+    destination_id BIGINT NOT NULL,
+    price REAL NOT NULL,
+    FOREIGN KEY (source_id) REFERENCES airports(id)
+        ON DELETE NO ACTION ON UPDATE NO ACTION,
+    FOREIGN KEY (destination_id) REFERENCES airports(id)
+        ON DELETE NO ACTION ON UPDATE NO ACTION
+);

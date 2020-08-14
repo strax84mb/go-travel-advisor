@@ -1,9 +1,5 @@
 package database
 
-import (
-	"time"
-)
-
 // UserRoleAdmin - Admin role
 var UserRoleAdmin = "ADMIN"
 
@@ -13,6 +9,7 @@ var UserRoleUser = "USER"
 // UserRoleAny - Any role
 var UserRoleAny = "any"
 
+/*
 // User - User entity
 type User struct {
 	ID       int64
@@ -59,3 +56,4 @@ type Route struct {
 	Destination   Airport `gorm:"foreignkey:ID;association_foreignkey:DestinationID"`
 	Price         float32 `gorm:"type:float;not null"`
 }
+*/

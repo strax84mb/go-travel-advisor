@@ -52,7 +52,7 @@ type PathRouteDto struct {
 
 // PathDto - planned path
 type PathDto struct {
-	sumPrice float32
+	sumPrice float64
 	start    PathRouteDto
 	flights  []PathRouteDto
 }

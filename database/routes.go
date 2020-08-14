@@ -1,12 +1,17 @@
 package database
 
 import (
+	"context"
 	"fmt"
 	"math"
+
+	"github.com/volatiletech/sqlboiler/v4/boil"
+	"github.com/volatiletech/sqlboiler/v4/queries/qm"
+	"gitlab.strale.io/go-travel/models"
 )
 
 // SaveRoute - save new route
-func SaveRoute(sourceID int64, destinationID int64, price float32) error {
+func SaveRoute(sourceID int64, destinationID int64, price float64) error {
 	source, err := loadAirportByAirportID(sourceID)
 	if err != nil {
 		return err
@@ -15,12 +20,12 @@ func SaveRoute(sourceID int64, destinationID int64, price float32) error {
 	if err != nil {
 		return err
 	}
-	route := Route{
+	route := models.Route{
 		SourceID:      source.ID,
 		DestinationID: destination.ID,
 		Price:         price,
 	}
-	if gdb.Create(&route).Error() != nil {
+	if err = route.Insert(context.Background(), db, boil.Infer()); err != nil {
 		return err
 	}
 	return nil
@@ -32,14 +37,14 @@ type routeTreeNode struct {
 	routeID       int64
 	startID       int64
 	destinationID int64
-	sumPrice      float32
+	sumPrice      float64
 }
 
 func (r routeTreeNode) initFirst(startingPoint int64) {
 	r.destinationID = startingPoint
 }
 
-func (r routeTreeNode) init(parent *routeTreeNode, route Route) {
+func (r routeTreeNode) init(parent *routeTreeNode, route *models.Route) {
 	r.parent = parent
 	r.routeID = route.ID
 	r.startID = route.SourceID
@@ -93,7 +98,7 @@ type routeTree struct {
 	sourceID         int64
 	destinationID    int64
 	root             *routeTreeNode
-	cheapestPrice    float32 // Needs to be set to max possible value
+	cheapestPrice    float64 // Needs to be set to max possible value
 	cheapestEndpoint *routeTreeNode
 }
 
@@ -118,18 +123,18 @@ func (r routeTree) searchCheapestPath() (PathDto, error) {
 		sumPrice: r.cheapestPrice,
 		start: PathRouteDto{
 			RouteID: flights[0].ID,
-			Airport: flights[0].Source.Name,
-			City:    flights[0].Source.City.Name,
-			Country: flights[0].Source.City.Country,
+			Airport: flights[0].R.Source.Name,
+			City:    flights[0].R.Source.R.City.Name,
+			Country: flights[0].R.Source.R.City.Country,
 		},
 	}
 	flightDtos := make([]PathRouteDto, len(flights))
 	for i, route := range flights {
 		flightDtos[i] = PathRouteDto{
 			RouteID: route.ID,
-			Airport: route.Destination.Name,
-			City:    route.Destination.City.Name,
-			Country: route.Destination.City.Country,
+			Airport: route.R.Destination.Name,
+			City:    route.R.Destination.R.City.Name,
+			Country: route.R.Destination.R.City.Country,
 		}
 	}
 	pathDto.flights = flightDtos
@@ -165,36 +170,32 @@ func (r routeTree) destroy() {
 	r.root = nil
 }
 
-func findBySourceIDAndDestinationIDNotIn(start int64, excludedDestinations []int64) ([]Route, error) {
-	var count int
-	if err := gdb.Model(&Route{}).Where("source_id = ? AND destination_id NOT IN (?)", &start, &excludedDestinations).
-		Count(&count).Error(); err != nil {
-		return nil, fmt.Errorf("Error while counting for start %d. Error: %s", start, err.Error())
-	}
-	result := make([]Route, count)
-	if err := gdb.Where("source_id = ? AND destination_id NOT IN (?)", &start, &excludedDestinations).
-		Find(&result).Error(); err != nil {
+func findBySourceIDAndDestinationIDNotIn(start int64, excludedDestinations []int64) (models.RouteSlice, error) {
+	routes, err := models.Routes(
+		models.RouteWhere.SourceID.EQ(start),
+		models.RouteWhere.DestinationID.NIN(excludedDestinations)).
+		All(context.Background(), db)
+	if err != nil {
 		return nil, fmt.Errorf("Error while loading destinations for start %d. Error: %s", start, err.Error())
 	}
-	return result, nil
+	return routes, nil
 }
 
-func loadFullRoutes(ids []int64) ([]Route, error) {
-	routes := make([]Route, len(ids))
-	if err := gdb.Where("id IN(?)", &ids).
-		Preload("Source").Preload("Source.City").
-		Preload("Destination").Preload("Destination.City").
-		Find(&routes).Error(); err != nil {
+func loadFullRoutes(ids []int64) (models.RouteSlice, error) {
+	routes, err := models.Routes(
+		models.RouteWhere.ID.IN(ids),
+		qm.Load(models.RouteRels.Source),
+		qm.Load(models.RouteRels.Source+"."+models.AirportRels.City),
+		qm.Load(models.RouteRels.Destination),
+		qm.Load(models.RouteRels.Destination+"."+models.AirportRels.City)).
+		All(context.Background(), db)
+	if err != nil {
 		return nil, err
 	}
-	result := make([]Route, len(ids))
-	for i, id := range ids {
-		result[i] = fetchRoute(routes, id)
-	}
-	return result, nil
+	return routes, nil
 }
 
-func fetchRoute(routes []Route, ID int64) Route {
+func fetchRoute(routes models.RouteSlice, ID int64) *models.Route {
 	for _, r := range routes {
 		if r.ID == ID {
 			return r
@@ -219,7 +220,7 @@ func FindCheapesRoute(start int64, end int64) (PathDto, error) {
 	rt := routeTree{
 		destinationID: endAirport.ID,
 		root:          &root,
-		cheapestPrice: math.MaxFloat32,
+		cheapestPrice: math.MaxFloat64,
 	}
 	pathDto, err := rt.searchCheapestPath()
 	if err != nil {

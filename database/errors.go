@@ -30,7 +30,7 @@ type UnauthorizedError struct {
 }
 
 func (e UnauthorizedError) Error() string {
-	return e.Error()
+	return e.Message
 }
 
 // UsernameTakenError - when username is already taken

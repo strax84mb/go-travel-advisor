@@ -8,6 +8,7 @@ import (
 	"github.com/julienschmidt/httprouter"
 	db "gitlab.strale.io/go-travel/database"
 	"gitlab.strale.io/go-travel/importing"
+	"gitlab.strale.io/go-travel/models"
 )
 
 // WriteCityPayload - payload for adding and updating a city
@@ -106,7 +107,7 @@ func GetCity(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	if maxComments, ok = getIntFromQuery(w, r, "max-comments", -1, "Bad value for max-comments"); !ok {
 		return
 	}
-	city, _, err := db.GetCityByID(id, maxComments)
+	city, err := db.GetCityByID(id, maxComments)
 	if err != nil {
 		handleErrors(w, err, err,
 			errorHandling{
@@ -176,19 +177,22 @@ func ImportCities(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 }
 
 func parseCityRow(fields []string, mapping importing.FieldMapping) (interface{}, error) {
-	city := db.City{
-		Name:    fields[mapping[cityName]],
-		Country: fields[mapping[cityCountry]],
-	}
+	values := make(map[string]string)
+	values[cityName] = fields[mapping[cityName]]
+	values[cityCountry] = fields[mapping[cityCountry]]
 	defer func() {
 		if err := recover(); err != nil {
 			log.Println("[Parsing error]", err)
 		}
 	}()
-	return city, nil
+	return values, nil
 }
 
 func cityEntitySaver(entity interface{}) error {
-	city := entity.(db.City)
+	values := entity.(map[string]string)
+	city := models.City{
+		Name:    values[cityName],
+		Country: values[cityCountry],
+	}
 	return db.AddNewCity(city.Name, city.Country)
 }

@@ -14,7 +14,6 @@ import (
 	"github.com/jinzhu/gorm"
 
 	mocket "github.com/selvatico/go-mocket"
-	db "gitlab.strale.io/go-travel/database"
 	v2 "gopkg.in/validator.v2"
 )
 
@@ -55,7 +54,7 @@ func SetupTests() *gorm.DB {
 	mocket.Catcher.Register()
 	mocket.Catcher.Logging = true
 	gdb, _ := gorm.Open(mocket.DriverName, "somestring")
-	db.SetDBForTesting(gdb)
+	//db.SetDBForTesting(gdb)
 	return gdb
 }
 

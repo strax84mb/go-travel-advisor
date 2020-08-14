@@ -26,7 +26,7 @@ func main() {
 	router.POST("/user/signup", h.SignupUser)
 	router.POST("/user/login", h.LoginUser)
 	// city endpoints
-	router.GET("/city", h.GetAllCities)
+	/*router.GET("/city", h.GetAllCities)
 	router.POST("/city", h.AddCity)
 	router.GET("/city/:id", h.GetCity)
 	router.PUT("/city/:id", h.UpdateCity)
@@ -45,7 +45,7 @@ func main() {
 	router.POST("/airport/import", h.ImportAirports)
 	// route endpoints
 	router.POST("/route/import", h.ImportRoutes)
-	router.GET("/route/search", h.PlanRoute)
+	router.GET("/route/search", h.PlanRoute)*/
 
 	log.Fatal(http.ListenAndServe(":8081", router))
 }

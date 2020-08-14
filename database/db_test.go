@@ -1,10 +1,6 @@
 package database
 
-import (
-	"github.com/jinzhu/copier"
-	"github.com/jinzhu/gorm"
-)
-
+/*
 type dbWrapperMock struct {
 	Value              []interface{}
 	ValueRead          *int
@@ -155,3 +151,4 @@ func (db *dbWrapperMock) RowsAffected() int64 {
 	(*q)++
 	return rowsAffected
 }
+*/

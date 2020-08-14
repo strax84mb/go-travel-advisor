@@ -49,7 +49,7 @@ func UpdateComment(w http.ResponseWriter, r *http.Request, p httprouter.Params) 
 	if !ok {
 		return
 	}
-	err := db.UpdateComment(id, payload.Text, username, payload.CityID)
+	err := db.UpdateComment(id, payload.Text, username)
 	if err != nil {
 		handleErrors(w, err, err,
 			errorHandling{

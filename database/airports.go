@@ -1,14 +1,20 @@
 package database
 
 import (
+	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 	"log"
+
+	"github.com/volatiletech/sqlboiler/v4/boil"
+	"github.com/volatiletech/sqlboiler/v4/queries/qm"
+	"gitlab.strale.io/go-travel/models"
 )
 
 // SaveAirport - save new airport to DB
 func SaveAirport(airportID int64, name string, cityID int64) (AirportDto, error) {
-	city, _, err := GetCityByID(cityID, 0)
+	city, err := GetCityByID(cityID, 0)
 	if err != nil {
 		return AirportDto{}, err
 	}
@@ -25,12 +31,12 @@ func SaveAirport(airportID int64, name string, cityID int64) (AirportDto, error)
 			Cause:   err,
 		}
 	}
-	airport := Airport{
+	airport := &models.Airport{
 		CityID:    cityID,
 		Name:      name,
 		AirportID: airportID,
 	}
-	if err = gdb.Create(&airport).Error(); err != nil {
+	if err = airport.Insert(context.Background(), db, boil.Infer()); err != nil {
 		return AirportDto{}, &StatementError{
 			Message: "Error while saving airport",
 			Cause:   err,
@@ -49,7 +55,7 @@ func UpdateAirport(id int64, airportID int64, name string, cityID int64) (Airpor
 	if err != nil {
 		return AirportDto{}, nil
 	}
-	city, _, err := GetCityByID(cityID, 0)
+	city, err := GetCityByID(cityID, 0)
 	if err != nil {
 		return AirportDto{}, err
 	}
@@ -70,8 +76,7 @@ func UpdateAirport(id int64, airportID int64, name string, cityID int64) (Airpor
 	airport.AirportID = airportID
 	airport.Name = name
 	airport.CityID = cityID
-	airport.City = City{}
-	if err = gdb.Save(&airport).Error(); err != nil {
+	if _, err = airport.Update(context.Background(), db, boil.Infer()); err != nil {
 		return AirportDto{}, &StatementError{
 			Message: "Error while updating airport data",
 			Cause:   err,
@@ -82,50 +87,52 @@ func UpdateAirport(id int64, airportID int64, name string, cityID int64) (Airpor
 
 // DeleteAirport - delete airport from DB
 func DeleteAirport(id int64) error {
-	curDB := gdb.Delete(&Airport{ID: id})
-	if curDB.RecordNotFound() {
-		return airportNotFoundError(id)
-	} else if curDB.Error() != nil {
-		log.Printf("Error while deleting airport with ID %d! Error: %s", id, curDB.Error().Error())
+	rowsAff, err := models.Airports(models.AirportWhere.ID.EQ(id)).DeleteAll(context.Background(), db)
+	if err != nil {
+		log.Printf("Error while deleting airport with ID %d! Error: %s", id, err.Error())
 		return &StatementError{
 			Message: fmt.Sprintf("Error while deleting airport with ID %d", id),
-			Cause:   gdb.Error(),
+			Cause:   err,
 		}
+	} else if rowsAff == 0 {
+		return airportNotFoundError(id)
 	}
 	return nil
 }
 
-func loadAirportByAirportID(airportID int64) (Airport, error) {
-	airport := Airport{}
-	curDB := gdb.Where(&Airport{AirportID: airportID}).First(&airport)
-	if curDB.RecordNotFound() {
-		return Airport{}, &NotFoundError{Message: fmt.Sprintf("Airport with AirportID %d not found", airportID)}
-	} else if curDB.Error() != nil {
-		log.Printf("Error while loading airport with AirportID %d! Error: %s", airportID, curDB.Error().Error())
-		return Airport{}, &StatementError{
+func loadAirportByAirportID(airportID int64) (*models.Airport, error) {
+	airport, err := models.Airports(models.AirportWhere.AirportID.EQ(airportID)).One(context.Background(), db)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, &NotFoundError{
+				Message: fmt.Sprintf("Airport with AirportID %d not found", airportID),
+			}
+		}
+		log.Printf("Error while loading airport with AirportID %d! Error: %s", airportID, err.Error())
+		return nil, &StatementError{
 			Message: fmt.Sprintf("Error while loading airport with AirportID %d", airportID),
-			Cause:   curDB.Error(),
+			Cause:   err,
 		}
 	}
 	return airport, nil
 }
 
-func loadAirport(id int64) (Airport, error) {
-	airport := Airport{}
-	curDB := gdb.First(&airport, id)
-	if curDB.RecordNotFound() {
-		return Airport{}, airportNotFoundError(id)
-	} else if curDB.Error() != nil {
-		log.Printf("Error while loading airport with ID %d! Error: %s", id, curDB.Error().Error())
-		return Airport{}, &StatementError{
+func loadAirport(id int64) (*models.Airport, error) {
+	airport, err := models.Airports(models.AirportWhere.ID.EQ(id)).One(context.Background(), db)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, airportNotFoundError(id)
+		}
+		log.Printf("Error while loading airport with ID %d! Error: %s", id, err.Error())
+		return nil, &StatementError{
 			Message: fmt.Sprintf("Error while loading airport with ID %d", id),
-			Cause:   curDB.Error(),
+			Cause:   err,
 		}
 	}
 	return airport, nil
 }
 
-func makeAirportDto(airport Airport, city CityDto) AirportDto {
+func makeAirportDto(airport *models.Airport, city CityDto) AirportDto {
 	return AirportDto{
 		ID:        airport.ID,
 		AirportID: airport.AirportID,
@@ -140,39 +147,23 @@ func GetAirport(id int64) (AirportDto, error) {
 	if err != nil {
 		return AirportDto{}, err
 	}
-	city, _, err := GetCityByID(airport.CityID, 0)
+	city, err := GetCityByID(airport.CityID, 0)
 	if err != nil {
 		return AirportDto{}, err
 	}
 	return makeAirportDto(airport, city), nil
 }
 
-func countAllAirports() (int, error) {
-	var count int
-	if err := gdb.Model(&Airport{}).Count(&count).Error(); err != nil {
-		log.Printf("Error while counting all airports! Error: %s", err.Error())
-		return 0, &StatementError{
-			Message: "Error while counting all airports",
-			Cause:   err,
-		}
-	}
-	return count, nil
-}
-
 // ListAirports - load all airports from DB
 func ListAirports() ([]AirportDto, error) {
-	count, err := countAllAirports()
+	airports, err := models.Airports(qm.Load(models.AirportRels.City)).All(context.Background(), db)
 	if err != nil {
-		return nil, err
-	}
-	airports := make([]Airport, count)
-	if err := gdb.Preload("City").Find(&airports).Error(); err != nil {
 		return nil, &StatementError{
 			Message: "Error while loading all airports",
 			Cause:   err,
 		}
 	}
-	result := make([]AirportDto, count)
+	result := make([]AirportDto, len(airports))
 	for i, a := range airports {
 		result[i] = AirportDto{
 			ID:        a.ID,
@@ -180,8 +171,8 @@ func ListAirports() ([]AirportDto, error) {
 			Name:      a.Name,
 			City: CityDto{
 				ID:      a.CityID,
-				Name:    a.City.Name,
-				Country: a.City.Country,
+				Name:    a.R.City.Name,
+				Country: a.R.City.Country,
 			},
 		}
 	}

@@ -25,7 +25,7 @@ func SignupUser(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	}
 	// save new user
 	if err := db.SaveNewUser(payload.Username, payload.Password); err != nil {
-		var e db.UsernameTakenError
+		var e *db.UsernameTakenError
 		if errors.As(err, &e) {
 			http.Error(w, e.Error(), http.StatusUnauthorized)
 			return

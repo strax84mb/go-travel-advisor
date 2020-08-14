@@ -58,7 +58,7 @@ func ImportRoutes(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 type routeImport struct {
 	sourceID      int64
 	destinationID int64
-	price         float32
+	price         float64
 }
 
 func parseRouteRow(fields []string, mapping importing.FieldMapping) (interface{}, error) {
@@ -77,7 +77,7 @@ func parseRouteRow(fields []string, mapping importing.FieldMapping) (interface{}
 	return routeImport{
 		sourceID:      sourceID,
 		destinationID: destinationID,
-		price:         float32(price),
+		price:         price,
 	}, nil
 }
 
