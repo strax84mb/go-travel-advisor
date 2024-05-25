@@ -1,0 +1,9 @@
+db:
+  username: username
+  password: password
+  url: ../dev.db
+server:
+  address: 127.0.0.1
+  port: 8080
+security:
+  rsaKey: sdfsdfdf
