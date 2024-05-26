@@ -18,6 +18,8 @@ import (
 	"gitlab.strale.io/go-travel/internal/config"
 	"gitlab.strale.io/go-travel/internal/database"
 	"gitlab.strale.io/go-travel/internal/middleware"
+	"gitlab.strale.io/go-travel/internal/routes"
+	routeRepo "gitlab.strale.io/go-travel/internal/routes/repository"
 	"gitlab.strale.io/go-travel/internal/users"
 	userRepo "gitlab.strale.io/go-travel/internal/users/repository"
 	"gitlab.strale.io/go-travel/internal/utils"
@@ -50,6 +52,7 @@ func main() {
 	airportRepository := airportRepo.NewAirportRepository(&db)
 	userRepository := userRepo.NewUserRepository(&db)
 	commentRepository := commentRepo.NewCommentRepository(&db)
+	routeRepository := routeRepo.NewRouteRepository(&db)
 
 	cityService := cities.NewCityService(cityRepository, airportRepository)
 	airportService := airports.NewAirportService(airportRepository, cityRepository)
@@ -58,6 +61,7 @@ func main() {
 		cityRepository,
 		userRepository,
 	)
+	routesService := routes.NewRouteService(routeRepository, airportRepository)
 	securityService, err := users.NewSecurityService(conf.Security.RSAKey, userRepository)
 	if err != nil {
 		log.Fatal("failed to initialize security ", err.Error())
@@ -66,6 +70,7 @@ func main() {
 	cityController := cities.NewCityController(&cityService)
 	airportController := airports.NewAirportController(airportService)
 	commentsController := comments.NewCommentController(commentService)
+	routesController := routes.NewRouteController(routesService)
 
 	jwtMiddleware := middleware.NewVerifyJWTMiddleware(securityService)
 
@@ -77,10 +82,23 @@ func main() {
 	cityPrefixed := v1Router.PathPrefix("/cities").Subrouter()
 	commentPrefixed := v1Router.PathPrefix("/comments").Subrouter()
 	userPrefixed := v1Router.PathPrefix("/users").Subrouter()
+	routePrefixed := v1Router.PathPrefix("/routes").Subrouter()
+	airportPrefixed := v1Router.PathPrefix("/airports").Subrouter()
 
 	cityController.RegisterHandlers(cityPrefixed)
-	airportController.RegisterHandlers(v1Router.PathPrefix("/airports").Subrouter(), cityPrefixed)
-	commentsController.RegisterHandlers(v1Router, cityPrefixed, userPrefixed, commentPrefixed)
+	airportController.RegisterHandlers(airportPrefixed, cityPrefixed)
+	commentsController.RegisterHandlers(comments.RegisterHandlersInput{
+		V1Prefixed:       v1Router,
+		CityPrefixed:     cityPrefixed,
+		UsersPrefixed:    userPrefixed,
+		CommentsPrefixed: commentPrefixed,
+	})
+	routesController.RegisterHandlers(routes.RegisterHandlersInput{
+		V1Router:      v1Router,
+		RoutesRouter:  routePrefixed,
+		CityRouter:    cityPrefixed,
+		AirportRouter: airportPrefixed,
+	})
 
 	srv := &http.Server{
 		Handler:      r,

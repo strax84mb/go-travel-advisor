@@ -7,15 +7,16 @@ import (
 	"github.com/sirupsen/logrus"
 	"gitlab.strale.io/go-travel/internal/comments/repository"
 	"gitlab.strale.io/go-travel/internal/database"
+	"gitlab.strale.io/go-travel/internal/utils"
 	"gitlab.strale.io/go-travel/internal/utils/handler"
 	"gorm.io/gorm"
 )
 
 type iCommentRepository interface {
-	ListComments(pagination repository.Pagination) ([]database.Comment, error)
+	ListComments(pagination utils.Pagination) ([]database.Comment, error)
 	FindByID(input repository.FindByIDInput) (*database.Comment, error)
-	ListCommentsForUser(userID int64, pagination repository.Pagination) ([]database.Comment, error)
-	ListCommentsForCity(cityID int64, pagination repository.Pagination) ([]database.Comment, error)
+	ListCommentsForUser(userID int64, pagination utils.Pagination) ([]database.Comment, error)
+	ListCommentsForCity(cityID int64, pagination utils.Pagination) ([]database.Comment, error)
 	Insert(comment database.Comment) (*database.Comment, error)
 	Update(comment database.Comment) error
 	Delete(id int64) error
@@ -47,12 +48,6 @@ func NewCommentService(
 	}
 }
 
-// Pagination object
-type ListCommentsInput struct {
-	limit  int
-	offset int
-}
-
 func (cs *commentService) doListComments(
 	ctx context.Context,
 	searchFunc func() ([]database.Comment, error),
@@ -69,18 +64,15 @@ func (cs *commentService) doListComments(
 }
 
 // List all comments with pagination support
-func (cs *commentService) ListComments(ctx context.Context, pagination ListCommentsInput) ([]database.Comment, error) {
+func (cs *commentService) ListComments(ctx context.Context, pagination utils.Pagination) ([]database.Comment, error) {
 	return cs.doListComments(
 		ctx,
 		func() ([]database.Comment, error) {
-			return cs.commentRepo.ListComments(repository.Pagination{
-				Limit:  pagination.limit,
-				Offset: pagination.offset,
-			})
+			return cs.commentRepo.ListComments(pagination)
 		},
 		map[string]interface{}{
-			"offset": pagination.offset,
-			"limit":  pagination.limit,
+			"offset": pagination.Offset,
+			"limit":  pagination.Limit,
 		},
 	)
 }
@@ -104,23 +96,17 @@ func (cs *commentService) FindByID(ctx context.Context, id int64) (*database.Com
 func (cs *commentService) ListCommentsForCity(
 	ctx context.Context,
 	cityID int64,
-	pagination ListCommentsInput,
+	pagination utils.Pagination,
 ) ([]database.Comment, error) {
 	return cs.doListComments(
 		ctx,
 		func() ([]database.Comment, error) {
-			return cs.commentRepo.ListCommentsForCity(
-				cityID,
-				repository.Pagination{
-					Limit:  pagination.limit,
-					Offset: pagination.offset,
-				},
-			)
+			return cs.commentRepo.ListCommentsForCity(cityID, pagination)
 		},
 		map[string]interface{}{
 			"cityId": cityID,
-			"offset": pagination.offset,
-			"limit":  pagination.limit,
+			"offset": pagination.Offset,
+			"limit":  pagination.Limit,
 		},
 	)
 }
@@ -128,23 +114,17 @@ func (cs *commentService) ListCommentsForCity(
 func (cs *commentService) ListCommentsForUser(
 	ctx context.Context,
 	userID int64,
-	pagination ListCommentsInput,
+	pagination utils.Pagination,
 ) ([]database.Comment, error) {
 	return cs.doListComments(
 		ctx,
 		func() ([]database.Comment, error) {
-			return cs.commentRepo.ListCommentsForUser(
-				userID,
-				repository.Pagination{
-					Limit:  pagination.limit,
-					Offset: pagination.offset,
-				},
-			)
+			return cs.commentRepo.ListCommentsForUser(userID, pagination)
 		},
 		map[string]interface{}{
 			"userId": userID,
-			"offset": pagination.offset,
-			"limit":  pagination.limit,
+			"offset": pagination.Offset,
+			"limit":  pagination.Limit,
 		},
 	)
 }

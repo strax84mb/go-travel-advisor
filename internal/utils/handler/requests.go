@@ -10,7 +10,7 @@ import (
 	"github.com/gorilla/mux"
 )
 
-func QueryAsInt(r *http.Request, param string, mandatory bool, defaultValue int, validators ...AtomicValidator) (int, error) {
+func QueryAsInt(r *http.Request, param string, mandatory bool, defaultValue int, validators ...AtomicInt64Validator) (int, error) {
 	present := r.URL.Query().Has(param)
 	strValue := r.URL.Query().Get(param)
 	if mandatory {
@@ -32,7 +32,25 @@ func QueryAsInt(r *http.Request, param string, mandatory bool, defaultValue int,
 	return intValue, nil
 }
 
-func PathAsInt64(r *http.Request, param string, validators ...AtomicValidator) (int64, error) {
+func QueryAsString(r *http.Request, param string, mandatory bool, defaultValue string, validators ...AtomicStringValidator) (string, error) {
+	present := r.URL.Query().Has(param)
+	strValue := r.URL.Query().Get(param)
+	if mandatory {
+		if !present || strValue == "" {
+			return "", mandatoryQueryNotPresent(param)
+		}
+	} else if !present {
+		return defaultValue, nil
+	}
+	for _, validator := range validators {
+		if err := validator(param, strValue); err != nil {
+			return "", err
+		}
+	}
+	return strValue, nil
+}
+
+func PathAsInt64(r *http.Request, param string, validators ...AtomicInt64Validator) (int64, error) {
 	vars := mux.Vars(r)
 	if vars == nil {
 		return 0, ErrBadRequest{message: "path parameters not found"}

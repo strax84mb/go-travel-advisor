@@ -13,10 +13,10 @@ import (
 )
 
 type iCommentService interface {
-	ListComments(ctx context.Context, input ListCommentsInput) ([]database.Comment, error)
+	ListComments(ctx context.Context, input utils.Pagination) ([]database.Comment, error)
 	FindByID(ctx context.Context, id int64) (*database.Comment, error)
-	ListCommentsForCity(ctx context.Context, cityID int64, pagination ListCommentsInput) ([]database.Comment, error)
-	ListCommentsForUser(ctx context.Context, userID int64, pagination ListCommentsInput) ([]database.Comment, error)
+	ListCommentsForCity(ctx context.Context, cityID int64, pagination utils.Pagination) ([]database.Comment, error)
+	ListCommentsForUser(ctx context.Context, userID int64, pagination utils.Pagination) ([]database.Comment, error)
 	SaveComment(ctx context.Context, comment database.Comment) (*database.Comment, error)
 	UpdateText(ctx context.Context, commentID, requestorID int64, text string) error
 	DeleteByID(ctx context.Context, commentID, requestorID int64, force bool) error
@@ -32,65 +32,37 @@ func NewCommentController(commentSrvc iCommentService) *commentController {
 	}
 }
 
-func (cc *commentController) RegisterHandlers(
-	v1Prefixed *mux.Router,
-	cityPrefixed *mux.Router,
-	usersPrefixed *mux.Router,
-	commentsPrefixed *mux.Router,
-) {
-	v1Prefixed.Path("/me/comments").Methods(http.MethodGet).HandlerFunc(cc.ListCommentsForMe)
-
-	cityPrefixed.Path("/cities/{id}/comments").Methods(http.MethodGet).HandlerFunc(cc.ListCommentsForCity)
-
-	usersPrefixed.Path("/users/{id}/comments").Methods(http.MethodGet).HandlerFunc(cc.ListCommentsForUser)
-
-	commentsPrefixed.Path("/comments").Methods(http.MethodGet).HandlerFunc(cc.ListComments)
-	commentsPrefixed.Path("/comments").Methods(http.MethodPost).HandlerFunc(cc.SaveNewComment)
-
-	commentsPrefixed.Path("/comments/{id}").Methods(http.MethodGet).HandlerFunc(cc.GetCommentByID)
-	commentsPrefixed.Path("/comments/{id}").Methods(http.MethodPut).HandlerFunc(cc.UpdateComment)
-	commentsPrefixed.Path("/comments/{id}").Methods(http.MethodDelete).HandlerFunc(cc.DeleteComment)
-
-	commentsPrefixed.Path("/comments/{id}/force").Methods(http.MethodDelete).HandlerFunc(cc.ForceDeleteComment)
+type RegisterHandlersInput struct {
+	V1Prefixed       *mux.Router
+	CityPrefixed     *mux.Router
+	UsersPrefixed    *mux.Router
+	CommentsPrefixed *mux.Router
 }
 
-// Get pagination query parameters from request
-//
-//	page, pageSize, ok := cc.getPagination(w, r)
-//
-// Parameters:
-//   - w --> http.ResponseWriter used to write error response
-//   - r --> *http.Request from which to extract
-//     query parameters from
-//
-// Returns:
-//   - page --> requested page
-//   - pageSize --> size of requested page
-//   - ok --> no error happened and operation was successful
-func (cc *commentController) getPagination(w http.ResponseWriter, r *http.Request) (int, int, bool) {
-	page, err := handler.QueryAsInt(r, "page", false, 0, handler.IntMustBeZeroOrPositive)
-	if err != nil {
-		handler.ResolveErrorResponse(w, err)
-		return 0, 0, false
-	}
-	pageSize, err := handler.QueryAsInt(r, "page-size", false, 10, handler.IntMustBePositive)
-	if err != nil {
-		handler.ResolveErrorResponse(w, err)
-		return 0, 0, false
-	}
-	return page, pageSize, true
+func (cc *commentController) RegisterHandlers(input RegisterHandlersInput) {
+	input.V1Prefixed.Path("/me/comments").Methods(http.MethodGet).HandlerFunc(cc.listCommentsForMe)
+
+	input.CityPrefixed.Path("/cities/{id}/comments").Methods(http.MethodGet).HandlerFunc(cc.listCommentsForCity)
+
+	input.UsersPrefixed.Path("/users/{id}/comments").Methods(http.MethodGet).HandlerFunc(cc.listCommentsForUser)
+
+	input.CommentsPrefixed.Path("/comments").Methods(http.MethodGet).HandlerFunc(cc.listComments)
+	input.CommentsPrefixed.Path("/comments").Methods(http.MethodPost).HandlerFunc(cc.saveNewComment)
+
+	input.CommentsPrefixed.Path("/comments/{id}").Methods(http.MethodGet).HandlerFunc(cc.getCommentByID)
+	input.CommentsPrefixed.Path("/comments/{id}").Methods(http.MethodPut).HandlerFunc(cc.updateComment)
+	input.CommentsPrefixed.Path("/comments/{id}").Methods(http.MethodDelete).HandlerFunc(cc.deleteComment)
+
+	input.CommentsPrefixed.Path("/comments/{id}/force").Methods(http.MethodDelete).HandlerFunc(cc.forceDeleteComment)
 }
 
-func (cc *commentController) ListComments(w http.ResponseWriter, r *http.Request) {
-	page, pageSize, ok := cc.getPagination(w, r)
+func (cc *commentController) listComments(w http.ResponseWriter, r *http.Request) {
+	pagination, ok := utils.PaginationFromRequest(w, r)
 	if !ok {
 		return
 	}
 	ctx := r.Context()
-	comments, err := cc.commentSrvc.ListComments(ctx, ListCommentsInput{
-		limit:  pageSize,
-		offset: page * pageSize,
-	})
+	comments, err := cc.commentSrvc.ListComments(ctx, pagination)
 	if err != nil {
 		handler.ResolveErrorResponse(w, err)
 		return
@@ -98,7 +70,7 @@ func (cc *commentController) ListComments(w http.ResponseWriter, r *http.Request
 	handler.Respond(w, http.StatusOK, dto.CommentsToDtos(comments))
 }
 
-func (cc *commentController) GetCommentByID(w http.ResponseWriter, r *http.Request) {
+func (cc *commentController) getCommentByID(w http.ResponseWriter, r *http.Request) {
 	id, err := handler.PathAsInt64(r, "id", handler.IntMustBePositive)
 	if err != nil {
 		handler.ResolveErrorResponse(w, err)
@@ -112,8 +84,8 @@ func (cc *commentController) GetCommentByID(w http.ResponseWriter, r *http.Reque
 	handler.Respond(w, http.StatusOK, dto.CommentToDto(*comment))
 }
 
-func (cc *commentController) ListCommentsForMe(w http.ResponseWriter, r *http.Request) {
-	page, pageSize, ok := cc.getPagination(w, r)
+func (cc *commentController) listCommentsForMe(w http.ResponseWriter, r *http.Request) {
+	pagination, ok := utils.PaginationFromRequest(w, r)
 	if !ok {
 		return
 	}
@@ -123,10 +95,7 @@ func (cc *commentController) ListCommentsForMe(w http.ResponseWriter, r *http.Re
 		handler.ResolveErrorResponse(w, users.NewErrUnauthorizedWithCause("user not logged in"))
 		return
 	}
-	comments, err := cc.commentSrvc.ListCommentsForUser(ctx, userID, ListCommentsInput{
-		limit:  pageSize,
-		offset: page * pageSize,
-	})
+	comments, err := cc.commentSrvc.ListCommentsForUser(ctx, userID, pagination)
 	if err != nil {
 		handler.ResolveErrorResponse(w, err)
 		return
@@ -134,8 +103,8 @@ func (cc *commentController) ListCommentsForMe(w http.ResponseWriter, r *http.Re
 	handler.Respond(w, http.StatusOK, dto.CommentsToDtos(comments))
 }
 
-func (cc *commentController) ListCommentsForUser(w http.ResponseWriter, r *http.Request) {
-	page, pageSize, ok := cc.getPagination(w, r)
+func (cc *commentController) listCommentsForUser(w http.ResponseWriter, r *http.Request) {
+	pagination, ok := utils.PaginationFromRequest(w, r)
 	if !ok {
 		return
 	}
@@ -150,10 +119,7 @@ func (cc *commentController) ListCommentsForUser(w http.ResponseWriter, r *http.
 		handler.ResolveErrorResponse(w, users.NewErrUnauthorizedWithCause("only admins allowed"))
 		return
 	}
-	comments, err := cc.commentSrvc.ListCommentsForUser(ctx, userID, ListCommentsInput{
-		limit:  pageSize,
-		offset: page * pageSize,
-	})
+	comments, err := cc.commentSrvc.ListCommentsForUser(ctx, userID, pagination)
 	if err != nil {
 		handler.ResolveErrorResponse(w, err)
 		return
@@ -161,8 +127,8 @@ func (cc *commentController) ListCommentsForUser(w http.ResponseWriter, r *http.
 	handler.Respond(w, http.StatusOK, dto.CommentsToDtos(comments))
 }
 
-func (cc *commentController) ListCommentsForCity(w http.ResponseWriter, r *http.Request) {
-	page, pageSize, ok := cc.getPagination(w, r)
+func (cc *commentController) listCommentsForCity(w http.ResponseWriter, r *http.Request) {
+	pagination, ok := utils.PaginationFromRequest(w, r)
 	if !ok {
 		return
 	}
@@ -171,10 +137,7 @@ func (cc *commentController) ListCommentsForCity(w http.ResponseWriter, r *http.
 		handler.ResolveErrorResponse(w, err)
 		return
 	}
-	comments, err := cc.commentSrvc.ListCommentsForCity(r.Context(), cityID, ListCommentsInput{
-		limit:  pageSize,
-		offset: page * pageSize,
-	})
+	comments, err := cc.commentSrvc.ListCommentsForCity(r.Context(), cityID, pagination)
 	if err != nil {
 		handler.ResolveErrorResponse(w, err)
 		return
@@ -182,7 +145,7 @@ func (cc *commentController) ListCommentsForCity(w http.ResponseWriter, r *http.
 	handler.Respond(w, http.StatusOK, dto.CommentsToDtos(comments))
 }
 
-func (cc *commentController) SaveNewComment(w http.ResponseWriter, r *http.Request) {
+func (cc *commentController) saveNewComment(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	userID, _, ok := utils.GetJWTData(ctx)
 	if !ok {
@@ -207,7 +170,7 @@ func (cc *commentController) SaveNewComment(w http.ResponseWriter, r *http.Reque
 	handler.Respond(w, http.StatusCreated, dto.CommentToDto(*comment))
 }
 
-func (cc *commentController) UpdateComment(w http.ResponseWriter, r *http.Request) {
+func (cc *commentController) updateComment(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	userID, _, ok := utils.GetJWTData(ctx)
 	if !ok {
@@ -233,7 +196,7 @@ func (cc *commentController) UpdateComment(w http.ResponseWriter, r *http.Reques
 	handler.Respond(w, http.StatusOK, nil)
 }
 
-func (cc *commentController) DeleteComment(w http.ResponseWriter, r *http.Request) {
+func (cc *commentController) deleteComment(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	userID, _, ok := utils.GetJWTData(ctx)
 	if !ok {
@@ -253,7 +216,7 @@ func (cc *commentController) DeleteComment(w http.ResponseWriter, r *http.Reques
 	handler.Respond(w, http.StatusOK, nil)
 }
 
-func (cc *commentController) ForceDeleteComment(w http.ResponseWriter, r *http.Request) {
+func (cc *commentController) forceDeleteComment(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	_, roles, ok := utils.GetJWTData(ctx)
 	if !ok || utils.HasRole(roles, "admin") {

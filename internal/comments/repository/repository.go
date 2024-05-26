@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"gitlab.strale.io/go-travel/internal/database"
+	"gitlab.strale.io/go-travel/internal/utils"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
@@ -17,12 +18,7 @@ func NewCommentRepository(db *database.Database) *commentRepository {
 	return &commentRepository{db: db}
 }
 
-type Pagination struct {
-	Limit  int
-	Offset int
-}
-
-func (cr *commentRepository) doList(pagination Pagination, where func(*gorm.DB) *gorm.DB) ([]database.Comment, error) {
+func (cr *commentRepository) doList(pagination utils.Pagination, where func(*gorm.DB) *gorm.DB) ([]database.Comment, error) {
 	tx := cr.db.DB
 	if where != nil {
 		tx = where(tx)
@@ -42,7 +38,7 @@ func (cr *commentRepository) doList(pagination Pagination, where func(*gorm.DB) 
 	return comments, nil
 }
 
-func (cr *commentRepository) ListComments(pagination Pagination) ([]database.Comment, error) {
+func (cr *commentRepository) ListComments(pagination utils.Pagination) ([]database.Comment, error) {
 	return cr.doList(
 		pagination,
 		func(tx *gorm.DB) *gorm.DB {
@@ -51,7 +47,7 @@ func (cr *commentRepository) ListComments(pagination Pagination) ([]database.Com
 	)
 }
 
-func (cr *commentRepository) ListCommentsForUser(userID int64, pagination Pagination) ([]database.Comment, error) {
+func (cr *commentRepository) ListCommentsForUser(userID int64, pagination utils.Pagination) ([]database.Comment, error) {
 	return cr.doList(
 		pagination,
 		func(tx *gorm.DB) *gorm.DB {
@@ -60,7 +56,7 @@ func (cr *commentRepository) ListCommentsForUser(userID int64, pagination Pagina
 	)
 }
 
-func (cr *commentRepository) ListCommentsForCity(cityID int64, pagination Pagination) ([]database.Comment, error) {
+func (cr *commentRepository) ListCommentsForCity(cityID int64, pagination utils.Pagination) ([]database.Comment, error) {
 	return cr.doList(
 		pagination,
 		func(tx *gorm.DB) *gorm.DB {

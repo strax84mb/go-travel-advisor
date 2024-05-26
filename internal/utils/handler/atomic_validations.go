@@ -2,7 +2,7 @@ package handler
 
 import "fmt"
 
-type AtomicValidator func(name string, value int64) error
+type AtomicInt64Validator func(name string, value int64) error
 
 func IntMustBePositive(name string, value int64) error {
 	if value <= 0 {
@@ -23,3 +23,5 @@ func IntMustBeZeroOrPositive(name string, value int64) error {
 
 	return nil
 }
+
+type AtomicStringValidator func(name string, value string) error
