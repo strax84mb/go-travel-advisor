@@ -120,3 +120,16 @@ func (rr *routeRepository) Delete(id int64) error {
 	}
 	return nil
 }
+
+func (rr *routeRepository) FindDestinations(startAirportsIDs []int64, cityIDsToSkip []int64) ([]database.Route, error) {
+	var list []database.Route
+	tx := rr.db.DB.Where("routes.start_id IN ?", startAirportsIDs).
+		Joins("airports ON routes.destination_id = airports.id").
+		Where("airports.city_id NOT IN ?", cityIDsToSkip).
+		Preload("Source").Preload("Destination").
+		Find(&list)
+	if tx.Error != nil {
+		return nil, fmt.Errorf("failed to list routes: %w", tx.Error)
+	}
+	return list, nil
+}

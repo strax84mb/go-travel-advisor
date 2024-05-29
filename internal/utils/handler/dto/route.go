@@ -18,13 +18,13 @@ func RouteToDto(route database.Route) RouteDto {
 	source := RouteAirportDto{
 		ID: route.SourceID,
 	}
-	if route.Source.Name != "" {
+	if route.Source != nil {
 		source.Name = route.Source.Name
 	}
 	destination := RouteAirportDto{
 		ID: route.DestinationID,
 	}
-	if route.Destination.Name != "" {
+	if route.Destination != nil {
 		destination.Name = route.Destination.Name
 	}
 	return RouteDto{

@@ -37,6 +37,7 @@ type Airport struct {
 	ID     int64
 	Name   string `gorm:"type:varchar(100);not null"`
 	CityID int64  `gorm:"type:bigint;not null"`
+	City   *City  `gorm:"foreignkey:ID;association_foreignkey:CityID"`
 }
 
 type Comment struct {
@@ -59,9 +60,9 @@ type City struct {
 
 type Route struct {
 	ID            int64
-	SourceID      int64   `gorm:"type:bigint;not null"`
-	Source        Airport `gorm:"foreignkey:ID;association_foreignkey:SourceID"`
-	DestinationID int64   `gorm:"type:bigint;not null"`
-	Destination   Airport `gorm:"foreignkey:ID;association_foreignkey:DestinationID"`
-	Price         float32 `gorm:"type:float;not null"`
+	SourceID      int64    `gorm:"type:bigint;not null"`
+	Source        *Airport `gorm:"foreignkey:ID;association_foreignkey:SourceID"`
+	DestinationID int64    `gorm:"type:bigint;not null"`
+	Destination   *Airport `gorm:"foreignkey:ID;association_foreignkey:DestinationID"`
+	Price         float32  `gorm:"type:float;not null"`
 }

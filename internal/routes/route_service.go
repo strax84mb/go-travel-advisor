@@ -27,7 +27,9 @@ type iRouteRepository interface {
 	Delete(id int64) error
 }
 
-type iAirportRepository interface{}
+type iAirportRepository interface {
+	FindByID(id int64) (database.Airport, error)
+}
 
 type routeService struct {
 	routeRepo   iRouteRepository
@@ -125,10 +127,31 @@ func (rs *routeService) RouteByID(ctx context.Context, id int64) (*database.Rout
 }
 
 func (rs *routeService) SaveNew(ctx context.Context, route database.Route) (*database.Route, error) {
+	source, err := rs.airportRepo.FindByID(route.SourceID)
+	if err != nil {
+		logrus.WithContext(ctx).WithError(err).
+			WithField("sourceId", route.SourceID).
+			Error("could not get source airport")
+		return nil, fmt.Errorf("could not get source airport: %w", err)
+	}
+	destination, err := rs.airportRepo.FindByID(route.DestinationID)
+	if err != nil {
+		logrus.WithContext(ctx).WithError(err).
+			WithField("destionationId", route.DestinationID).
+			Error("could not get destination airport")
+		return nil, fmt.Errorf("could not get destination airport: %w", err)
+	}
+	if source.CityID == destination.CityID {
+		logrus.WithContext(ctx).
+			WithField("cityId", source.CityID).
+			Error("source and destination airport are in same city")
+		return nil, fmt.Errorf("source and destination airport are in same city (ID = %d)", source.CityID)
+	}
 	savedRoute, err := rs.routeRepo.Insert(route)
 	if err != nil {
 		logrus.WithContext(ctx).WithError(err).
-			Error("could not save route: %w", err)
+			Error("could not save route")
+		return nil, fmt.Errorf("could not save route: %w", err)
 	}
 	return savedRoute, nil
 }

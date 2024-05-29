@@ -34,6 +34,15 @@ func (cr *CityRepository) Find(input FindInput) ([]database.City, error) {
 	return result, nil
 }
 
+func (cr *CityRepository) FindByIDs(ids []int64) ([]database.City, error) {
+	var cities []database.City
+	tx := cr.db.DB.Where("id IN (?)", ids).Find(&cities)
+	if tx.Error != nil {
+		return nil, fmt.Errorf("failed to get cities for IDs: %w", tx.Error)
+	}
+	return cities, nil
+}
+
 func (cr *CityRepository) findOne(where func(*gorm.DB) *gorm.DB, preload bool) (database.City, error) {
 	city := database.City{}
 	tx := cr.db.DB
