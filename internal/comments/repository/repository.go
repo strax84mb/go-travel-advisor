@@ -103,7 +103,8 @@ func (cr *commentRepository) Insert(comment database.Comment) (*database.Comment
 }
 
 func (cr *commentRepository) Update(comment database.Comment) error {
-	tx := cr.db.DB.Where("id = ?", comment.ID).
+	tx := cr.db.DB.Model(&comment).
+		Where("id = ?", comment.ID).
 		Updates(
 			map[string]interface{}{
 				"text":     comment.Text,
@@ -111,10 +112,10 @@ func (cr *commentRepository) Update(comment database.Comment) error {
 			},
 		)
 	switch {
+	case tx.Error == gorm.ErrRecordNotFound || tx.RowsAffected == 0:
+		return database.ErrNotFound
 	case tx.Error != nil:
 		return fmt.Errorf("failed to update: %w", tx.Error)
-	case tx.RowsAffected == 0:
-		return database.ErrNotFound
 	default:
 		return nil
 	}
@@ -123,7 +124,7 @@ func (cr *commentRepository) Update(comment database.Comment) error {
 func (cr *commentRepository) Delete(id int64) error {
 	tx := cr.db.DB.Delete(&database.Comment{}, id)
 	switch {
-	case tx.Error == gorm.ErrRecordNotFound:
+	case tx.Error == gorm.ErrRecordNotFound || tx.RowsAffected == 0:
 		return database.ErrNotFound
 	case tx.Error != nil:
 		return fmt.Errorf("failed to delete: %w", tx.Error)

@@ -106,19 +106,29 @@ func (rr *routeRepository) Insert(route database.Route) (*database.Route, error)
 }
 
 func (rr *routeRepository) UpdatePrice(id int64, price float32) error {
-	tx := rr.db.DB.Where("id = ?", id).Update("price", price)
-	if tx.Error != nil {
+	tx := rr.db.DB.Model(&database.Route{}).
+		Where("id = ?", id).
+		Update("price", price)
+	switch {
+	case tx.Error == gorm.ErrRecordNotFound || tx.RowsAffected == 0:
+		return database.ErrNotFound
+	case tx.Error != nil:
 		return fmt.Errorf("failed to update route price: %w", tx.Error)
+	default:
+		return nil
 	}
-	return nil
 }
 
 func (rr *routeRepository) Delete(id int64) error {
 	tx := rr.db.DB.Where("id = ?", id).Delete(&database.Route{})
-	if tx.Error != nil {
+	switch {
+	case tx.Error == gorm.ErrRecordNotFound || tx.RowsAffected == 0:
+		return database.ErrNotFound
+	case tx.Error != nil:
 		return fmt.Errorf("failed to delete route: %w", tx.Error)
+	default:
+		return nil
 	}
-	return nil
 }
 
 func (rr *routeRepository) FindDestinations(startAirportsIDs []int64, cityIDsToSkip []int64) ([]database.Route, error) {
