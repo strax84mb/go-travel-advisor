@@ -7,6 +7,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"gitlab.strale.io/go-travel/internal/airports/repository"
 	"gitlab.strale.io/go-travel/internal/database"
+	"gitlab.strale.io/go-travel/internal/utils"
 )
 
 type pfRouteRepository interface {
@@ -115,11 +116,8 @@ func (pfs *pathFindingService) getAllAirportIDs(ctx context.Context, cityID int6
 	pageSize := 100
 	for {
 		airports, err = pfs.airportRepo.ListInCity(repository.ListInCityInput{
-			Pagination: repository.ListInput{
-				Offset: page * pageSize,
-				Limit:  pageSize,
-			},
-			CityID: cityID,
+			Pagination: utils.PaginationFrom(page, pageSize),
+			CityID:     cityID,
 		})
 		if len(airports) == 0 {
 			break
@@ -137,6 +135,7 @@ func (pfs *pathFindingService) getAllAirportIDs(ctx context.Context, cityID int6
 		for _, airport := range airports {
 			airportIDs[airport.ID] = true
 		}
+		page++
 	}
 	ids := make([]int64, len(airportIDs))
 	index := 0

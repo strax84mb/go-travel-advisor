@@ -19,7 +19,6 @@ func ConnectToDatabase(dbConfig config.DbConfig) (Database, error) {
 	if err != nil {
 		return Database{}, fmt.Errorf("failed to connect to database: %w", err)
 	}
-
 	db.AutoMigrate(&Comment{}, &Airport{}, &City{}, &User{}, &UserRole{}, &Route{})
 
 	if os.Getenv("INIT_DB") == "true" {

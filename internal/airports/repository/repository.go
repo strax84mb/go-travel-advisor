@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"gitlab.strale.io/go-travel/internal/database"
+	"gitlab.strale.io/go-travel/internal/utils"
 	"gorm.io/gorm"
 )
 
@@ -17,16 +18,11 @@ func NewAirportRepository(db *database.Database) *AirportRepository {
 	}
 }
 
-type ListInput struct {
-	Offset int
-	Limit  int
-}
-
-func (ar *AirportRepository) List(input ListInput) ([]database.Airport, error) {
+func (ar *AirportRepository) List(pagination utils.Pagination) ([]database.Airport, error) {
 	var airports []database.Airport
 	tx := ar.db.DB.
-		Limit(input.Limit).
-		Offset(input.Offset).
+		Limit(pagination.Limit).
+		Offset(pagination.Offset).
 		Find(&airports)
 	if tx.Error != nil {
 		return nil, fmt.Errorf("failed to read airports: %w", tx.Error)
@@ -35,7 +31,7 @@ func (ar *AirportRepository) List(input ListInput) ([]database.Airport, error) {
 }
 
 type ListInCityInput struct {
-	Pagination ListInput
+	Pagination utils.Pagination
 	CityID     int64
 }
 
@@ -56,11 +52,16 @@ func (ar *AirportRepository) FindByID(id int64) (database.Airport, error) {
 	var airport database.Airport
 	tx := ar.db.DB.
 		Where("id = ?", id).
+		Preload("City").
 		Take(&airport)
-	if tx.Error != nil {
+	switch {
+	case tx.Error == gorm.ErrRecordNotFound:
+		return database.Airport{}, database.ErrNotFound
+	case tx.Error != nil:
 		return database.Airport{}, fmt.Errorf("failed to find airport: %w", tx.Error)
+	default:
+		return airport, nil
 	}
-	return airport, nil
 }
 
 func (ar *AirportRepository) SaveAirport(airport database.Airport) (database.Airport, error) {
@@ -86,15 +87,20 @@ func (ar *AirportRepository) SaveAirport(airport database.Airport) (database.Air
 }
 
 func (ar *AirportRepository) UpdateAirport(airport database.Airport) error {
-	tx := ar.db.DB.Where("id = ?", airport.ID).
+	tx := ar.db.DB.Model(&database.Airport{}).
+		Where("id = ?", airport.ID).
 		Updates(map[string]interface{}{
 			"city_id": airport.CityID,
 			"name":    airport.Name,
 		})
-	if tx.Error != nil {
+	switch {
+	case tx.Error == gorm.ErrRecordNotFound || tx.RowsAffected == 0:
+		return database.ErrNotFound
+	case tx.Error != nil:
 		return fmt.Errorf("failed to update: %w", tx.Error)
+	default:
+		return nil
 	}
-	return nil
 }
 
 func (ar *AirportRepository) DeleteByID(id int64) error {

@@ -11,10 +11,11 @@ import (
 	"github.com/sirupsen/logrus"
 	"gitlab.strale.io/go-travel/internal/airports/repository"
 	"gitlab.strale.io/go-travel/internal/database"
+	"gitlab.strale.io/go-travel/internal/utils"
 )
 
 type airportRepository interface {
-	List(input repository.ListInput) ([]database.Airport, error)
+	List(input utils.Pagination) ([]database.Airport, error)
 	ListInCity(input repository.ListInCityInput) ([]database.Airport, error)
 	FindByID(id int64) (database.Airport, error)
 	SaveAirport(airport database.Airport) (database.Airport, error)
@@ -40,11 +41,8 @@ func NewAirportService(airportRepo airportRepository, cityRepo cityRepository) *
 	}
 }
 
-func (as *AirportService) ListAirports(ctx context.Context, limit int, offset int) ([]database.Airport, error) {
-	airports, err := as.airportRepo.List(repository.ListInput{
-		Limit:  limit,
-		Offset: offset,
-	})
+func (as *AirportService) ListAirports(ctx context.Context, pagination utils.Pagination) ([]database.Airport, error) {
+	airports, err := as.airportRepo.List(pagination)
 	if err != nil {
 		logrus.WithContext(ctx).WithError(err).Error("error while listing airports")
 		return nil, fmt.Errorf("error while listing airports: %w", err)
@@ -52,13 +50,10 @@ func (as *AirportService) ListAirports(ctx context.Context, limit int, offset in
 	return airports, err
 }
 
-func (as *AirportService) ListAirportsInCity(ctx context.Context, cityID int64, limit, offset int) ([]database.Airport, error) {
+func (as *AirportService) ListAirportsInCity(ctx context.Context, cityID int64, pagination utils.Pagination) ([]database.Airport, error) {
 	airports, err := as.airportRepo.ListInCity(repository.ListInCityInput{
-		CityID: cityID,
-		Pagination: repository.ListInput{
-			Offset: offset,
-			Limit:  limit,
-		},
+		CityID:     cityID,
+		Pagination: pagination,
 	})
 	if err != nil {
 		logrus.WithContext(ctx).WithError(err).

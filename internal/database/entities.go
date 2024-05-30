@@ -26,11 +26,12 @@ type User struct {
 	Roles        []UserRole `gorm:"foreignkey:UserID;association_foreignkey:ID"`
 }
 
-func (u *User) AfterCreate(tx *gorm.DB) {
+func (u *User) AfterCreate(tx *gorm.DB) error {
 	for i := range u.Roles {
 		u.Roles[i].UserID = u.ID
 	}
 	tx.Create(&u.Roles)
+	return tx.Error
 }
 
 type Airport struct {

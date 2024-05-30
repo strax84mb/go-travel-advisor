@@ -65,7 +65,7 @@ func (cr *CityRepository) FindByID(id int64, preload bool) (database.City, error
 		func(tx *gorm.DB) *gorm.DB {
 			return tx.Where("id = ?", id)
 		},
-		false,
+		preload,
 	)
 }
 
@@ -74,7 +74,7 @@ func (cr *CityRepository) FindByName(name string, preload bool) (database.City, 
 		func(tx *gorm.DB) *gorm.DB {
 			return tx.Where("name = ?", name)
 		},
-		false,
+		preload,
 	)
 }
 
@@ -103,7 +103,8 @@ func (cr *CityRepository) SaveNew(city database.City) (database.City, error) {
 }
 
 func (cr *CityRepository) Update(city database.City) error {
-	tx := cr.db.DB.Where("id = ?", city.ID).
+	tx := cr.db.DB.Model(&database.City{}).
+		Where("id = ?", city.ID).
 		Update("name", city.Name)
 	switch {
 	case tx.Error == gorm.ErrRecordNotFound:
@@ -119,10 +120,14 @@ func (cr *CityRepository) Update(city database.City) error {
 
 func (cr *CityRepository) Delete(id int64) error {
 	tx := cr.db.DB.Delete(&database.City{}, id)
-	if tx.Error == gorm.ErrRecordNotFound {
+	switch {
+	case tx.Error == gorm.ErrRecordNotFound:
 		return database.ErrNotFound
-	} else if tx.Error != nil {
+	case tx.RowsAffected == 0:
+		return database.ErrNotFound
+	case tx.Error != nil:
 		return fmt.Errorf("failed to delete city with ID=%d: %w", id, tx.Error)
+	default:
+		return nil
 	}
-	return nil
 }

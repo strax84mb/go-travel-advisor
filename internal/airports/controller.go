@@ -8,13 +8,14 @@ import (
 
 	"github.com/gorilla/mux"
 	"gitlab.strale.io/go-travel/internal/database"
+	"gitlab.strale.io/go-travel/internal/utils"
 	"gitlab.strale.io/go-travel/internal/utils/handler"
 	"gitlab.strale.io/go-travel/internal/utils/handler/dto"
 )
 
 type airportService interface {
-	ListAirports(ctx context.Context, limit int, offset int) ([]database.Airport, error)
-	ListAirportsInCity(ctx context.Context, cityID int64, limit, offset int) ([]database.Airport, error)
+	ListAirports(ctx context.Context, pagination utils.Pagination) ([]database.Airport, error)
+	ListAirportsInCity(ctx context.Context, cityID int64, pagination utils.Pagination) ([]database.Airport, error)
 	FindByID(ctx context.Context, id int64) (database.Airport, error)
 	SaveNewAirport(ctx context.Context, airport database.Airport) (database.Airport, error)
 	UpdateAirport(ctx context.Context, airport database.Airport) error
@@ -76,7 +77,7 @@ func (ac *airportController) ListAllAirports(w http.ResponseWriter, r *http.Requ
 		w,
 		r,
 		func(page, pageSize int) ([]database.Airport, error) {
-			return ac.airportSrvc.ListAirports(r.Context(), pageSize, page*pageSize)
+			return ac.airportSrvc.ListAirports(r.Context(), utils.PaginationFrom(page, pageSize))
 		},
 	)
 }
@@ -91,7 +92,7 @@ func (ac *airportController) ListAirportsInCity(w http.ResponseWriter, r *http.R
 		w,
 		r,
 		func(page, pageSize int) ([]database.Airport, error) {
-			return ac.airportSrvc.ListAirportsInCity(r.Context(), cityID, pageSize, page*pageSize)
+			return ac.airportSrvc.ListAirportsInCity(r.Context(), cityID, utils.PaginationFrom(page, pageSize))
 		},
 	)
 }
