@@ -11,43 +11,61 @@ import (
 )
 
 func QueryAsInt(r *http.Request, param string, mandatory bool, defaultValue int, validators ...AtomicInt64Validator) (int, error) {
-	present := r.URL.Query().Has(param)
-	strValue := r.URL.Query().Get(param)
-	if mandatory {
-		if !present {
-			return 0, mandatoryQueryNotPresent(param)
-		}
-	} else if !present {
-		return defaultValue, nil
-	}
-	intValue, err := strconv.Atoi(strValue)
+	value, err := query[int](r, param, true, defaultValue)
 	if err != nil {
-		return 0, ErrBadRequest{message: fmt.Sprintf("%s is malformed", param)}
+		return 0, err
 	}
 	for _, validator := range validators {
-		if err = validator(param, int64(intValue)); err != nil {
+		if err = validator(param, int64(value)); err != nil {
 			return 0, err
 		}
 	}
-	return intValue, nil
+	return value, nil
 }
 
 func QueryAsString(r *http.Request, param string, mandatory bool, defaultValue string, validators ...AtomicStringValidator) (string, error) {
+	value, err := query[string](r, param, true, defaultValue)
+	if err != nil {
+		return "", err
+	}
+	for _, validator := range validators {
+		if err := validator(param, value); err != nil {
+			return "", err
+		}
+	}
+	return value, nil
+}
+
+func query[T int | string](
+	r *http.Request,
+	param string,
+	mandatory bool,
+	defaultValue T,
+) (T, error) {
 	present := r.URL.Query().Has(param)
 	strValue := r.URL.Query().Get(param)
+	var (
+		val T
+		err error
+	)
 	if mandatory {
 		if !present || strValue == "" {
-			return "", mandatoryQueryNotPresent(param)
+			return val, mandatoryQueryNotPresent(param)
 		}
 	} else if !present {
 		return defaultValue, nil
 	}
-	for _, validator := range validators {
-		if err := validator(param, strValue); err != nil {
-			return "", err
+	switch t := any(val).(type) {
+	case string:
+		val = any(strValue).(T)
+	case int:
+		t, err = strconv.Atoi(strValue)
+		if err != nil {
+			return val, ErrBadRequest{message: fmt.Sprintf("%s is malformed", param)}
 		}
+		val = any(t).(T)
 	}
-	return strValue, nil
+	return val, nil
 }
 
 func PathAsInt64(r *http.Request, param string, validators ...AtomicInt64Validator) (int64, error) {

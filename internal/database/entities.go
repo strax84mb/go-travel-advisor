@@ -38,15 +38,15 @@ type Airport struct {
 	ID     int64
 	Name   string `gorm:"type:varchar(100);not null"`
 	CityID int64  `gorm:"type:bigint;not null"`
-	City   *City  `gorm:"foreignkey:ID;association_foreignkey:CityID"`
+	City   *City  `gorm:"foreignkey:CityID;association_foreignkey:ID"`
 }
 
 type Comment struct {
 	ID       int64
 	CityID   int64      `gorm:"type:bigint;not null"`
-	City     City       `gorm:"foreignkey:ID;association_foreignkey:CityID"`
+	City     City       `gorm:"foreignkey:CityID;association_foreignkey:ID"`
 	PosterID int64      `gorm:"type:bigint;not null"`
-	Poster   User       `gorm:"foreignkey:ID;association_foreignkey:PosterID"`
+	Poster   User       `gorm:"foreignkey:PosterID;association_foreignkey:ID"`
 	Text     string     `gorm:"type:varchar(255)"`
 	Created  *time.Time `gorm:"type:datetime;not null"`
 	Modified *time.Time `gorm:"type:datetime;not null"`
@@ -62,8 +62,8 @@ type City struct {
 type Route struct {
 	ID            int64
 	SourceID      int64    `gorm:"type:bigint;not null"`
-	Source        *Airport `gorm:"foreignkey:ID;association_foreignkey:SourceID"`
+	Source        *Airport `gorm:"foreignkey:SourceID;association_foreignkey:ID"`
 	DestinationID int64    `gorm:"type:bigint;not null"`
-	Destination   *Airport `gorm:"foreignkey:ID;association_foreignkey:DestinationID"`
+	Destination   *Airport `gorm:"foreignkey:DestinationID;association_foreignkey:ID"`
 	Price         float32  `gorm:"type:float;not null"`
 }

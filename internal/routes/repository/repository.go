@@ -133,11 +133,13 @@ func (rr *routeRepository) Delete(id int64) error {
 
 func (rr *routeRepository) FindDestinations(startAirportsIDs []int64, cityIDsToSkip []int64) ([]database.Route, error) {
 	var list []database.Route
-	tx := rr.db.DB.Where("routes.start_id IN ?", startAirportsIDs).
-		Joins("airports ON routes.destination_id = airports.id").
-		Where("airports.city_id NOT IN ?", cityIDsToSkip).
+	tx := rr.db.DB.Where("routes.source_id IN ?", startAirportsIDs).
 		Preload("Source").Preload("Destination").
-		Find(&list)
+		Joins("LEFT JOIN airports ON routes.destination_id = airports.id")
+	if len(cityIDsToSkip) > 0 {
+		tx = tx.Where("airports.city_id NOT IN ?", cityIDsToSkip)
+	}
+	tx = tx.Find(&list)
 	if tx.Error != nil {
 		return nil, fmt.Errorf("failed to list routes: %w", tx.Error)
 	}

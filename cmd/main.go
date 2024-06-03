@@ -67,7 +67,7 @@ func main() {
 		log.Fatal("failed to initialize security ", err.Error())
 	}
 
-	cityController := cities.NewCityController(&cityService)
+	cityController := cities.NewCityController(cityService)
 	airportController := airports.NewAirportController(airportService)
 	commentsController := comments.NewCommentController(commentService)
 	routesController := routes.NewRouteController(routesService)

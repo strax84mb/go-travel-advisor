@@ -25,19 +25,19 @@ type airportRepository interface {
 	DeleteByCityID(cityID int64) error
 }
 
-type CityService struct {
+type cityService struct {
 	cityRepo    cityRepository
 	airportRepo airportRepository
 }
 
-func NewCityService(cityRepo cityRepository, airportRepo airportRepository) CityService {
-	return CityService{
+func NewCityService(cityRepo cityRepository, airportRepo airportRepository) *cityService {
+	return &cityService{
 		cityRepo:    cityRepo,
 		airportRepo: airportRepo,
 	}
 }
 
-func (cs *CityService) ListCities(ctx context.Context, offset int, limit int) ([]database.City, error) {
+func (cs *cityService) ListCities(ctx context.Context, offset int, limit int) ([]database.City, error) {
 	cities, err := cs.cityRepo.Find(repository.FindInput{
 		Offset: offset,
 		Limit:  limit,
@@ -49,7 +49,7 @@ func (cs *CityService) ListCities(ctx context.Context, offset int, limit int) ([
 	return cities, nil
 }
 
-func (cs *CityService) FindByID(ctx context.Context, id int64) (database.City, error) {
+func (cs *cityService) FindByID(ctx context.Context, id int64) (database.City, error) {
 	city, err := cs.cityRepo.FindByID(id, true)
 	if err != nil && err != database.ErrNotFound {
 		logrus.WithError(err).WithContext(ctx).Error("error loading city")
@@ -58,7 +58,7 @@ func (cs *CityService) FindByID(ctx context.Context, id int64) (database.City, e
 	return city, err
 }
 
-func (cs *CityService) SaveNewCity(ctx context.Context, name string) (database.City, error) {
+func (cs *cityService) SaveNewCity(ctx context.Context, name string) (database.City, error) {
 	city, err := cs.cityRepo.SaveNew(database.City{Name: name})
 	if err != nil {
 		logrus.WithContext(ctx).WithError(err).Error("error while saving city")
@@ -67,7 +67,7 @@ func (cs *CityService) SaveNewCity(ctx context.Context, name string) (database.C
 	return city, nil
 }
 
-func (cs *CityService) UpdateCity(ctx context.Context, id int64, name string) error {
+func (cs *cityService) UpdateCity(ctx context.Context, id int64, name string) error {
 	err := cs.cityRepo.Update(database.City{
 		ID:   id,
 		Name: name,
@@ -79,7 +79,7 @@ func (cs *CityService) UpdateCity(ctx context.Context, id int64, name string) er
 	return nil
 }
 
-func (cs *CityService) DeleteCity(ctx context.Context, id int64) error {
+func (cs *cityService) DeleteCity(ctx context.Context, id int64) error {
 	err := cs.airportRepo.DeleteByCityID(id)
 	if err != nil {
 		logrus.WithContext(ctx).WithError(err).
@@ -97,7 +97,7 @@ func (cs *CityService) DeleteCity(ctx context.Context, id int64) error {
 	return nil
 }
 
-func (cs *CityService) ImportCities(ctx context.Context, content []byte) error {
+func (cs *cityService) ImportCities(ctx context.Context, content []byte) error {
 	reader := bytes.NewReader(content)
 	csvReader := csv.NewReader(reader)
 	var (

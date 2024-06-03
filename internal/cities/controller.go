@@ -12,7 +12,7 @@ import (
 	"gitlab.strale.io/go-travel/internal/utils/handler/dto"
 )
 
-type cityService interface {
+type iCityService interface {
 	ListCities(ctx context.Context, offset, limit int) ([]database.City, error)
 	FindByID(ctx context.Context, id int64) (database.City, error)
 	SaveNewCity(ctx context.Context, name string) (database.City, error)
@@ -22,10 +22,10 @@ type cityService interface {
 }
 
 type cityController struct {
-	citySrvc cityService
+	citySrvc iCityService
 }
 
-func NewCityController(citySrvc cityService) *cityController {
+func NewCityController(citySrvc iCityService) *cityController {
 	return &cityController{
 		citySrvc: citySrvc,
 	}
