@@ -2,12 +2,27 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"net/http"
+	"os"
+	"time"
 
+	"github.com/gorilla/mux"
 	"github.com/julienschmidt/httprouter"
-	db "gitlab.strale.io/go-travel/database"
-	h "gitlab.strale.io/go-travel/handlers"
+	log "github.com/sirupsen/logrus"
+	"gitlab.strale.io/go-travel/internal/airports"
+	airportRepo "gitlab.strale.io/go-travel/internal/airports/repository"
+	cities "gitlab.strale.io/go-travel/internal/cities"
+	cityRepo "gitlab.strale.io/go-travel/internal/cities/repository"
+	"gitlab.strale.io/go-travel/internal/comments"
+	commentRepo "gitlab.strale.io/go-travel/internal/comments/repository"
+	"gitlab.strale.io/go-travel/internal/config"
+	"gitlab.strale.io/go-travel/internal/database"
+	"gitlab.strale.io/go-travel/internal/middleware"
+	"gitlab.strale.io/go-travel/internal/routes"
+	routeRepo "gitlab.strale.io/go-travel/internal/routes/repository"
+	"gitlab.strale.io/go-travel/internal/users"
+	userRepo "gitlab.strale.io/go-travel/internal/users/repository"
+	"gitlab.strale.io/go-travel/internal/utils"
 )
 
 // Hello a handler for /hello/:name endpoint
@@ -18,34 +33,81 @@ func Hello(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 }
 
 func main() {
-	db.InitDb()
+	log.SetFormatter(&log.JSONFormatter{})
+	log.SetOutput(os.Stdout)
+	log.SetLevel(log.InfoLevel)
+	log.AddHook(&utils.ContextLoggerHook{})
 
-	router := httprouter.New()
-	router.GET("/hello/:name", Hello)
-	// user endpoints
-	router.POST("/user/signup", h.SignupUser)
-	router.POST("/user/login", h.LoginUser)
-	// city endpoints
-	router.GET("/city", h.GetAllCities)
-	router.POST("/city", h.AddCity)
-	router.GET("/city/:id", h.GetCity)
-	router.PUT("/city/:id", h.UpdateCity)
-	router.DELETE("/city/:id", h.DeleteCity)
-	router.POST("/city/import", h.ImportCities)
-	// comment endpoints
-	router.POST("/comment", h.PostComment)
-	router.PUT("/comment/:id", h.UpdateComment)
-	router.DELETE("/comment/:id", h.DeleteComment)
-	// airport endpoints
-	router.GET("/airport", h.ListAirports)
-	router.POST("/airport", h.AddAirport)
-	router.GET("/airport/:id", h.GetAirport)
-	router.PUT("/airport/:id", h.UpdateAirport)
-	router.DELETE("/airport", h.DeleteAirport)
-	router.POST("/airport/import", h.ImportAirports)
-	// route endpoints
-	router.POST("/route/import", h.ImportRoutes)
-	router.GET("/route/search", h.PlanRoute)
+	conf, err := config.LoadConfig(os.Getenv("CONFIG_FILE"))
+	if err != nil {
+		log.Fatal("failed to load configuration ", err.Error())
+	}
 
-	log.Fatal(http.ListenAndServe(":8081", router))
+	db, err := database.ConnectToDatabase(conf.DB)
+	if err != nil {
+		log.Fatal("failed to connect to database ", err.Error())
+	}
+
+	cityRepository := cityRepo.NewCityRepository(&db)
+	airportRepository := airportRepo.NewAirportRepository(&db)
+	userRepository := userRepo.NewUserRepository(&db)
+	commentRepository := commentRepo.NewCommentRepository(&db)
+	routeRepository := routeRepo.NewRouteRepository(&db)
+
+	cityService := cities.NewCityService(cityRepository, airportRepository)
+	airportService := airports.NewAirportService(airportRepository, cityRepository)
+	commentService := comments.NewCommentService(
+		commentRepository,
+		cityRepository,
+		userRepository,
+	)
+	routesService := routes.NewRouteService(routeRepository, airportRepository)
+	securityService, err := users.NewSecurityService(conf.Security.RSAKey, userRepository)
+	if err != nil {
+		log.Fatal("failed to initialize security ", err.Error())
+	}
+
+	cityController := cities.NewCityController(cityService)
+	airportController := airports.NewAirportController(airportService)
+	commentsController := comments.NewCommentController(commentService)
+	routesController := routes.NewRouteController(routesService)
+
+	jwtMiddleware := middleware.NewVerifyJWTMiddleware(securityService)
+
+	r := mux.NewRouter()
+	r.Use(middleware.RequestIDMiddleware)
+	r.Use(jwtMiddleware.Middleware)
+
+	v1Router := r.PathPrefix("/v1").Subrouter()
+	cityPrefixed := v1Router.PathPrefix("/cities").Subrouter()
+	commentPrefixed := v1Router.PathPrefix("/comments").Subrouter()
+	userPrefixed := v1Router.PathPrefix("/users").Subrouter()
+	routePrefixed := v1Router.PathPrefix("/routes").Subrouter()
+	airportPrefixed := v1Router.PathPrefix("/airports").Subrouter()
+
+	cityController.RegisterHandlers(cityPrefixed)
+	airportController.RegisterHandlers(airportPrefixed, cityPrefixed)
+	commentsController.RegisterHandlers(comments.RegisterHandlersInput{
+		V1Prefixed:       v1Router,
+		CityPrefixed:     cityPrefixed,
+		UsersPrefixed:    userPrefixed,
+		CommentsPrefixed: commentPrefixed,
+	})
+	routesController.RegisterHandlers(routes.RegisterHandlersInput{
+		V1Router:      v1Router,
+		RoutesRouter:  routePrefixed,
+		CityRouter:    cityPrefixed,
+		AirportRouter: airportPrefixed,
+	})
+
+	srv := &http.Server{
+		Handler:      r,
+		Addr:         fmt.Sprintf("%s:%d", conf.Server.Address, conf.Server.Port),
+		WriteTimeout: 15 * time.Second,
+		ReadTimeout:  15 * time.Second,
+	}
+	log.Info("Serving on port ", conf.Server.Port)
+	if err := srv.ListenAndServe(); err != nil {
+		log.Fatal(err.Error())
+	}
 }

@@ -1,3 +1,5 @@
 .vscode
 cmd/test.db
 build
+dev.db
+coverage
