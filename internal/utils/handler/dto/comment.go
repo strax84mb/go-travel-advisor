@@ -6,6 +6,11 @@ import (
 	"gitlab.strale.io/go-travel/internal/database"
 )
 
+//go:generate ffjson -nodecoder $GOFILE
+type CommentsDto struct {
+	Items []CommentDto `json:"items"`
+}
+
 type CommentPosterDto struct {
 	ID   int64   `json:"id"`
 	Name *string `json:"name,omitempty"`
@@ -25,17 +30,7 @@ type CommentDto struct {
 	Modified string           `json:"modified,omitempty"`
 }
 
-type SaveCommentDto struct {
-	CityID   int64  `json:"cityId"`
-	PosterID int64  `json:"posterId"`
-	Text     string `json:"text"`
-}
-
-type UpdateCommentDto struct {
-	Text string `json:"text"`
-}
-
-func CommentToDto(comment database.Comment) CommentDto {
+func CommentToDto(comment database.Comment) *CommentDto {
 	poster := CommentPosterDto{
 		ID: comment.PosterID,
 	}
@@ -60,13 +55,15 @@ func CommentToDto(comment database.Comment) CommentDto {
 	if comment.Modified != nil {
 		dto.Modified = comment.Modified.Format(time.RFC3339)
 	}
-	return dto
+	return &dto
 }
 
-func CommentsToDtos(comments []database.Comment) []CommentDto {
-	dtos := make([]CommentDto, len(comments))
-	for i, comment := range comments {
-		dtos[i] = CommentToDto(comment)
+func CommentsToDtos(comments []database.Comment) *CommentsDto {
+	dtos := CommentsDto{
+		Items: make([]CommentDto, len(comments)),
 	}
-	return dtos
+	for i, comment := range comments {
+		dtos.Items[i] = *CommentToDto(comment)
+	}
+	return &dtos
 }

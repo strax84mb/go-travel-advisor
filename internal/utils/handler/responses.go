@@ -49,3 +49,20 @@ func Respond(w http.ResponseWriter, status int, body interface{}) {
 		w.Write(bytesBody)
 	}
 }
+
+type Marshalable interface {
+	MarshalJSON() ([]byte, error)
+}
+
+func RespondFF(w http.ResponseWriter, status int, body Marshalable) {
+	w.WriteHeader(status)
+	if body != nil {
+		bytesBody, err := body.MarshalJSON()
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte(`{"error":"failed to serialize payload"}`))
+			return
+		}
+		w.Write(bytesBody)
+	}
+}

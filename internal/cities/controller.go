@@ -58,11 +58,7 @@ func (cc *cityController) ListAllCities(w http.ResponseWriter, r *http.Request) 
 		handler.ResolveErrorResponse(w, err)
 		return
 	}
-	dtos := make([]dto.CityDto, len(cities))
-	for i, city := range cities {
-		dtos[i] = dto.CityToDto(city)
-	}
-	handler.Respond(w, http.StatusOK, dtos)
+	handler.RespondFF(w, http.StatusOK, dto.CitiesToDtos(cities))
 }
 
 func (cc *cityController) GetCityByID(w http.ResponseWriter, r *http.Request) {
@@ -77,12 +73,12 @@ func (cc *cityController) GetCityByID(w http.ResponseWriter, r *http.Request) {
 		handler.ResolveErrorResponse(w, err)
 		return
 	}
-	handler.Respond(w, http.StatusOK, dto.CityToDto(city))
+	handler.RespondFF(w, http.StatusOK, dto.CityToDto(city))
 }
 
 func (cc *cityController) SaveNewCity(w http.ResponseWriter, r *http.Request) {
 	var payload dto.SaveCityDto
-	err := handler.GetBody(r, &payload)
+	err := handler.GetBodyFF(r, &payload)
 	if err != nil {
 		handler.ResolveErrorResponse(w, err)
 		return
@@ -92,7 +88,7 @@ func (cc *cityController) SaveNewCity(w http.ResponseWriter, r *http.Request) {
 		handler.ResolveErrorResponse(w, err)
 		return
 	}
-	handler.Respond(w, http.StatusCreated, dto.CityToDto(city))
+	handler.RespondFF(w, http.StatusCreated, dto.CityToDto(city))
 }
 
 func (cc *cityController) UpdateCity(w http.ResponseWriter, r *http.Request) {
@@ -102,7 +98,7 @@ func (cc *cityController) UpdateCity(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var payload dto.SaveCityDto
-	err = handler.GetBody(r, &payload)
+	err = handler.GetBodyFF(r, &payload)
 	if err != nil {
 		handler.ResolveErrorResponse(w, err)
 		return

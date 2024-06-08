@@ -65,11 +65,7 @@ func (ac *airportController) listAirports(
 		handler.ResolveErrorResponse(w, err)
 		return
 	}
-	dtos := make([]dto.AirportDto, len(airports))
-	for i, airport := range airports {
-		dtos[i] = dto.AirportToDto(airport)
-	}
-	handler.Respond(w, http.StatusOK, dtos)
+	handler.RespondFF(w, http.StatusOK, dto.AirportsToDtos(airports))
 }
 
 func (ac *airportController) ListAllAirports(w http.ResponseWriter, r *http.Request) {
@@ -113,7 +109,7 @@ func (ac *airportController) GetAirportByID(w http.ResponseWriter, r *http.Reque
 
 func (ac *airportController) SaveNewAirport(w http.ResponseWriter, r *http.Request) {
 	var payload dto.SaveAirportDto
-	err := handler.GetBody(r, &payload)
+	err := handler.GetBodyFF(r, &payload)
 	if err != nil {
 		handler.ResolveErrorResponse(w, err)
 		return
@@ -136,7 +132,7 @@ func (ac *airportController) UpdateAirport(w http.ResponseWriter, r *http.Reques
 		return
 	}
 	var payload dto.SaveAirportDto
-	err = handler.GetBody(r, &payload)
+	err = handler.GetBodyFF(r, &payload)
 	if err != nil {
 		handler.ResolveErrorResponse(w, err)
 		return

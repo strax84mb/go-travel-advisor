@@ -2,21 +2,31 @@ package dto
 
 import "gitlab.strale.io/go-travel/internal/database"
 
+//go:generate ffjson -nodecoder $GOFILE
+type AirportDtos struct {
+	Items []AirportDto `json:"items"`
+}
+
 type AirportDto struct {
 	ID     int64  `json:"id"`
 	Name   string `json:"name"`
 	CityID int64  `json:"cityId"`
 }
 
-func AirportToDto(airport database.Airport) AirportDto {
-	return AirportDto{
+func AirportToDto(airport database.Airport) *AirportDto {
+	return &AirportDto{
 		ID:     airport.ID,
 		Name:   airport.Name,
 		CityID: airport.CityID,
 	}
 }
 
-type SaveAirportDto struct {
-	Name   string `json:"name"`
-	CityID int64  `json:"cityId"`
+func AirportsToDtos(airports []database.Airport) *AirportDtos {
+	list := AirportDtos{
+		Items: make([]AirportDto, len(airports)),
+	}
+	for i, a := range airports {
+		list.Items[i] = *AirportToDto(a)
+	}
+	return &list
 }

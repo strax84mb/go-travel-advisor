@@ -67,7 +67,7 @@ func (cc *commentController) listComments(w http.ResponseWriter, r *http.Request
 		handler.ResolveErrorResponse(w, err)
 		return
 	}
-	handler.Respond(w, http.StatusOK, dto.CommentsToDtos(comments))
+	handler.RespondFF(w, http.StatusOK, dto.CommentsToDtos(comments))
 }
 
 func (cc *commentController) getCommentByID(w http.ResponseWriter, r *http.Request) {
@@ -81,7 +81,7 @@ func (cc *commentController) getCommentByID(w http.ResponseWriter, r *http.Reque
 		handler.ResolveErrorResponse(w, err)
 		return
 	}
-	handler.Respond(w, http.StatusOK, dto.CommentToDto(*comment))
+	handler.RespondFF(w, http.StatusOK, dto.CommentToDto(*comment))
 }
 
 func (cc *commentController) listCommentsForMe(w http.ResponseWriter, r *http.Request) {
@@ -100,7 +100,7 @@ func (cc *commentController) listCommentsForMe(w http.ResponseWriter, r *http.Re
 		handler.ResolveErrorResponse(w, err)
 		return
 	}
-	handler.Respond(w, http.StatusOK, dto.CommentsToDtos(comments))
+	handler.RespondFF(w, http.StatusOK, dto.CommentsToDtos(comments))
 }
 
 func (cc *commentController) listCommentsForUser(w http.ResponseWriter, r *http.Request) {
@@ -124,7 +124,7 @@ func (cc *commentController) listCommentsForUser(w http.ResponseWriter, r *http.
 		handler.ResolveErrorResponse(w, err)
 		return
 	}
-	handler.Respond(w, http.StatusOK, dto.CommentsToDtos(comments))
+	handler.RespondFF(w, http.StatusOK, dto.CommentsToDtos(comments))
 }
 
 func (cc *commentController) listCommentsForCity(w http.ResponseWriter, r *http.Request) {
@@ -142,7 +142,7 @@ func (cc *commentController) listCommentsForCity(w http.ResponseWriter, r *http.
 		handler.ResolveErrorResponse(w, err)
 		return
 	}
-	handler.Respond(w, http.StatusOK, dto.CommentsToDtos(comments))
+	handler.RespondFF(w, http.StatusOK, dto.CommentsToDtos(comments))
 }
 
 func (cc *commentController) saveNewComment(w http.ResponseWriter, r *http.Request) {
@@ -153,7 +153,7 @@ func (cc *commentController) saveNewComment(w http.ResponseWriter, r *http.Reque
 		return
 	}
 	var payload dto.SaveCommentDto
-	err := handler.GetBody(r, &payload)
+	err := handler.GetBodyFF(r, &payload)
 	if err != nil {
 		handler.ResolveErrorResponse(w, err)
 		return
@@ -167,7 +167,7 @@ func (cc *commentController) saveNewComment(w http.ResponseWriter, r *http.Reque
 		handler.ResolveErrorResponse(w, err)
 		return
 	}
-	handler.Respond(w, http.StatusCreated, dto.CommentToDto(*comment))
+	handler.RespondFF(w, http.StatusCreated, dto.CommentToDto(*comment))
 }
 
 func (cc *commentController) updateComment(w http.ResponseWriter, r *http.Request) {
@@ -183,7 +183,7 @@ func (cc *commentController) updateComment(w http.ResponseWriter, r *http.Reques
 		return
 	}
 	var payload dto.UpdateCommentDto
-	err = handler.GetBody(r, &payload)
+	err = handler.GetBodyFF(r, &payload)
 	if err != nil {
 		handler.ResolveErrorResponse(w, err)
 		return
