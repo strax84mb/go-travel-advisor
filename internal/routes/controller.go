@@ -68,7 +68,7 @@ func (rc *routeController) doList(
 		handler.ResolveErrorResponse(w, err)
 		return
 	}
-	handler.Respond(w, http.StatusOK, dto.RoutesToDtos(list))
+	handler.RespondFF(w, http.StatusOK, dto.RoutesToDtos(list))
 }
 
 func (rc *routeController) listRoutes(w http.ResponseWriter, r *http.Request) {
@@ -133,12 +133,12 @@ func (rc *routeController) findByID(w http.ResponseWriter, r *http.Request) {
 		handler.ResolveErrorResponse(w, err)
 		return
 	}
-	handler.Respond(w, http.StatusCreated, dto.RouteToDto(*route))
+	handler.RespondFF(w, http.StatusCreated, dto.RouteToDto(*route))
 }
 
 func (rc *routeController) saveNewRoute(w http.ResponseWriter, r *http.Request) {
 	var payload dto.SaveRouteDto
-	err := handler.GetBody(r, &payload)
+	err := handler.GetBodyFF(r, &payload)
 	if err != nil {
 		handler.ResolveErrorResponse(w, err)
 		return
@@ -152,7 +152,7 @@ func (rc *routeController) saveNewRoute(w http.ResponseWriter, r *http.Request) 
 		handler.ResolveErrorResponse(w, err)
 		return
 	}
-	handler.Respond(w, http.StatusOK, dto.RouteToDto(*route))
+	handler.RespondFF(w, http.StatusOK, dto.RouteToDto(*route))
 }
 
 func (rc *routeController) update(w http.ResponseWriter, r *http.Request) {
@@ -162,7 +162,7 @@ func (rc *routeController) update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var payload dto.UpdateRoutePrice
-	err = handler.GetBody(r, &payload)
+	err = handler.GetBodyFF(r, &payload)
 	if err != nil {
 		handler.ResolveErrorResponse(w, err)
 		return

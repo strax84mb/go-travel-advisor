@@ -1,58 +1,12 @@
 package dto
 
-import "gitlab.strale.io/go-travel/internal/database"
+import (
+	"bytes"
+	"fmt"
 
-type StepType string
-
-const (
-	FlightType   StepType = "FLIGHT"
-	TransferType StepType = "TRANSFER"
+	"github.com/pquerna/ffjson/ffjson"
+	"gitlab.strale.io/go-travel/internal/database"
 )
-
-type FlightCityDto struct {
-	ID   int64  `json:"id"`
-	Name string `json:"name"`
-}
-
-type FlightAirportDto struct {
-	ID   int64         `json:"id"`
-	Name string        `json:"name"`
-	City FlightCityDto `json:"city"`
-}
-
-type FlightDto struct {
-	From  FlightAirportDto `json:"from"`
-	To    FlightAirportDto `json:"to"`
-	Price float32          `json:"price"`
-}
-
-func (f *FlightDto) Type() StepType {
-	return FlightType
-}
-
-type TransferAirportDto struct {
-	ID   int64  `json:"id"`
-	Name string `json:"name"`
-}
-
-type TransferCityDto struct {
-	ID   int64  `json:"id"`
-	Name string `json:"name"`
-}
-
-type TransferDto struct {
-	City TransferCityDto    `json:"city"`
-	From TransferAirportDto `json:"from"`
-	To   TransferAirportDto `json:"to"`
-}
-
-func (t *TransferDto) Type() StepType {
-	return TransferType
-}
-
-type Step interface {
-	Type() StepType
-}
 
 type CheapestPath struct {
 	Path      []Step  `json:"path"`
@@ -125,4 +79,30 @@ func CompileCheapestPath(routes []*database.Route, fullPrice float32) *CheapestP
 		Path:      path,
 		FullPrice: fullPrice,
 	}
+}
+
+func (cp *CheapestPath) Encode() ([]byte, error) {
+	var err error
+	buf := new(bytes.Buffer)
+	enc := ffjson.NewEncoder(buf)
+	if _, err = buf.Write([]byte(`{"path":[`)); err != nil {
+		return nil, err
+	}
+	cap := len(cp.Path) - 1
+	for i, step := range cp.Path {
+		if err = enc.Encode(step); err != nil {
+			return nil, err
+		}
+		if i < cap {
+			if _, err = buf.Write([]byte(",")); err != nil {
+				return nil, err
+			}
+		}
+	}
+	_, err = buf.WriteString(fmt.Sprintf(`],"fullPrice":%f}`, cp.FullPrice))
+	if err != nil {
+		return nil, err
+	}
+
+	return buf.Bytes(), nil
 }
