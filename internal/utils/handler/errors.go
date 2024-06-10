@@ -28,6 +28,20 @@ func NewErrForbidden(message string) error {
 	return ErrForbidden{message: message}
 }
 
+type ErrUnauthorized struct {
+	message string
+}
+
+func (e ErrUnauthorized) Error() string {
+	return fmt.Sprintf("unauthorized: %s", e.message)
+}
+
+func NewErrUnauthorizedWithCause(cause string) error {
+	return ErrUnauthorized{
+		message: cause,
+	}
+}
+
 func mandatoryNotPresent(param, paramType string) error {
 	return ErrBadRequest{
 		message: fmt.Sprintf("%s %s is missing", paramType, param),

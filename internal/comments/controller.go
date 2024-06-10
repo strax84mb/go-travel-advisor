@@ -6,7 +6,6 @@ import (
 
 	"github.com/gorilla/mux"
 	"gitlab.strale.io/go-travel/internal/database"
-	"gitlab.strale.io/go-travel/internal/users"
 	"gitlab.strale.io/go-travel/internal/utils"
 	"gitlab.strale.io/go-travel/internal/utils/handler"
 	"gitlab.strale.io/go-travel/internal/utils/handler/dto"
@@ -42,18 +41,18 @@ type RegisterHandlersInput struct {
 func (cc *commentController) RegisterHandlers(input RegisterHandlersInput) {
 	input.V1Prefixed.Path("/me/comments").Methods(http.MethodGet).HandlerFunc(cc.listCommentsForMe)
 
-	input.CityPrefixed.Path("/cities/{id}/comments").Methods(http.MethodGet).HandlerFunc(cc.listCommentsForCity)
+	input.CityPrefixed.Path("/{id}/comments").Methods(http.MethodGet).HandlerFunc(cc.listCommentsForCity)
 
-	input.UsersPrefixed.Path("/users/{id}/comments").Methods(http.MethodGet).HandlerFunc(cc.listCommentsForUser)
+	input.UsersPrefixed.Path("/{id}/comments").Methods(http.MethodGet).HandlerFunc(cc.listCommentsForUser)
 
-	input.CommentsPrefixed.Path("/comments").Methods(http.MethodGet).HandlerFunc(cc.listComments)
-	input.CommentsPrefixed.Path("/comments").Methods(http.MethodPost).HandlerFunc(cc.saveNewComment)
+	input.CommentsPrefixed.Path("").Methods(http.MethodGet).HandlerFunc(cc.listComments)
+	input.CommentsPrefixed.Path("").Methods(http.MethodPost).HandlerFunc(cc.saveNewComment)
 
-	input.CommentsPrefixed.Path("/comments/{id}").Methods(http.MethodGet).HandlerFunc(cc.getCommentByID)
-	input.CommentsPrefixed.Path("/comments/{id}").Methods(http.MethodPut).HandlerFunc(cc.updateComment)
-	input.CommentsPrefixed.Path("/comments/{id}").Methods(http.MethodDelete).HandlerFunc(cc.deleteComment)
+	input.CommentsPrefixed.Path("/{id}").Methods(http.MethodGet).HandlerFunc(cc.getCommentByID)
+	input.CommentsPrefixed.Path("/{id}").Methods(http.MethodPut).HandlerFunc(cc.updateComment)
+	input.CommentsPrefixed.Path("/{id}").Methods(http.MethodDelete).HandlerFunc(cc.deleteComment)
 
-	input.CommentsPrefixed.Path("/comments/{id}/force").Methods(http.MethodDelete).HandlerFunc(cc.forceDeleteComment)
+	input.CommentsPrefixed.Path("/{id}/force").Methods(http.MethodDelete).HandlerFunc(cc.forceDeleteComment)
 }
 
 func (cc *commentController) listComments(w http.ResponseWriter, r *http.Request) {
@@ -92,7 +91,7 @@ func (cc *commentController) listCommentsForMe(w http.ResponseWriter, r *http.Re
 	ctx := r.Context()
 	userID, _, ok := utils.GetJWTData(ctx)
 	if !ok {
-		handler.ResolveErrorResponse(w, users.NewErrUnauthorizedWithCause("user not logged in"))
+		handler.ResolveErrorResponse(w, handler.NewErrUnauthorizedWithCause("user not logged in"))
 		return
 	}
 	comments, err := cc.commentSrvc.ListCommentsForUser(ctx, userID, pagination)
@@ -116,7 +115,7 @@ func (cc *commentController) listCommentsForUser(w http.ResponseWriter, r *http.
 	ctx := r.Context()
 	_, roles, ok := utils.GetJWTData(ctx)
 	if !ok || !utils.HasRole(roles, "admin") {
-		handler.ResolveErrorResponse(w, users.NewErrUnauthorizedWithCause("only admins allowed"))
+		handler.ResolveErrorResponse(w, handler.NewErrUnauthorizedWithCause("only admins allowed"))
 		return
 	}
 	comments, err := cc.commentSrvc.ListCommentsForUser(ctx, userID, pagination)
@@ -149,7 +148,7 @@ func (cc *commentController) saveNewComment(w http.ResponseWriter, r *http.Reque
 	ctx := r.Context()
 	userID, _, ok := utils.GetJWTData(ctx)
 	if !ok {
-		handler.ResolveErrorResponse(w, users.NewErrUnauthorizedWithCause("must be logged in"))
+		handler.ResolveErrorResponse(w, handler.NewErrUnauthorizedWithCause("must be logged in"))
 		return
 	}
 	var payload dto.SaveCommentDto
@@ -174,7 +173,7 @@ func (cc *commentController) updateComment(w http.ResponseWriter, r *http.Reques
 	ctx := r.Context()
 	userID, _, ok := utils.GetJWTData(ctx)
 	if !ok {
-		handler.ResolveErrorResponse(w, users.NewErrUnauthorizedWithCause("must be logged in"))
+		handler.ResolveErrorResponse(w, handler.NewErrUnauthorizedWithCause("must be logged in"))
 		return
 	}
 	id, err := handler.PathAsInt64(r, "id", handler.IntMustBePositive)
@@ -200,7 +199,7 @@ func (cc *commentController) deleteComment(w http.ResponseWriter, r *http.Reques
 	ctx := r.Context()
 	userID, _, ok := utils.GetJWTData(ctx)
 	if !ok {
-		handler.ResolveErrorResponse(w, users.NewErrUnauthorizedWithCause("must be logged in"))
+		handler.ResolveErrorResponse(w, handler.NewErrUnauthorizedWithCause("must be logged in"))
 		return
 	}
 	id, err := handler.PathAsInt64(r, "id", handler.IntMustBePositive)
@@ -220,7 +219,7 @@ func (cc *commentController) forceDeleteComment(w http.ResponseWriter, r *http.R
 	ctx := r.Context()
 	_, roles, ok := utils.GetJWTData(ctx)
 	if !ok || utils.HasRole(roles, "admin") {
-		handler.ResolveErrorResponse(w, users.NewErrUnauthorizedWithCause("must be logged in"))
+		handler.ResolveErrorResponse(w, handler.NewErrUnauthorizedWithCause("must be logged in"))
 		return
 	}
 	id, err := handler.PathAsInt64(r, "id", handler.IntMustBePositive)

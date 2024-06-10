@@ -6,6 +6,7 @@ import (
 
 	"github.com/sirupsen/logrus"
 	"gitlab.strale.io/go-travel/internal/database"
+	"gitlab.strale.io/go-travel/internal/utils/handler"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -45,7 +46,7 @@ func (us *userService) Login(ctx context.Context, username, password string) (st
 	}
 	err = bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(password))
 	if err != nil {
-		return "", ErrUnauthorized{message: "incorrect password"}
+		return "", handler.NewErrUnauthorizedWithCause("incorrect password")
 	}
 	jwt, err := us.secSrvc.GenerateJWT(ctx, *user)
 	if err != nil {

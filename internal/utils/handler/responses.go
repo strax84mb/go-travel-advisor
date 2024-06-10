@@ -6,7 +6,6 @@ import (
 	"net/http"
 
 	"gitlab.strale.io/go-travel/internal/database"
-	"gitlab.strale.io/go-travel/internal/users"
 )
 
 type ErrorResponseBody struct {
@@ -21,7 +20,7 @@ func ResolveErrorResponse(w http.ResponseWriter, err error) {
 		w.WriteHeader(http.StatusBadRequest)
 	case errors.As(err, &ErrForbidden{}):
 		w.WriteHeader(http.StatusForbidden)
-	case errors.As(err, &users.ErrUnauthorized{}):
+	case errors.As(err, &ErrUnauthorized{}):
 		w.WriteHeader(http.StatusBadRequest)
 	default:
 		w.WriteHeader(http.StatusInternalServerError)

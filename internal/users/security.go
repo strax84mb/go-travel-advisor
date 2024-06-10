@@ -11,21 +11,8 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/sirupsen/logrus"
 	"gitlab.strale.io/go-travel/internal/database"
+	"gitlab.strale.io/go-travel/internal/utils/handler"
 )
-
-type ErrUnauthorized struct {
-	message string
-}
-
-func (e ErrUnauthorized) Error() string {
-	return fmt.Sprintf("unauthorized: %s", e.message)
-}
-
-func NewErrUnauthorizedWithCause(cause string) error {
-	return ErrUnauthorized{
-		message: cause,
-	}
-}
 
 type securityService struct {
 	key *rsa.PrivateKey
@@ -75,9 +62,7 @@ func (ss *securityService) VerifyJWT(r *http.Request) (int64, []string, error) {
 		return 0, nil, nil
 	}
 	if strings.HasPrefix(authHeader, "Bearer ") {
-		return 0, nil, ErrUnauthorized{
-			message: "malformed authorization header",
-		}
+		return 0, nil, handler.NewErrUnauthorizedWithCause("malformed authorization header")
 	}
 	authHeader = strings.TrimPrefix(authHeader, "Bearer ")
 	token, err := jwt.Parse(
@@ -87,9 +72,7 @@ func (ss *securityService) VerifyJWT(r *http.Request) (int64, []string, error) {
 		},
 	)
 	if err != nil {
-		return 0, nil, ErrUnauthorized{
-			message: err.Error(),
-		}
+		return 0, nil, handler.NewErrUnauthorizedWithCause(err.Error())
 	}
 	claims := token.Claims.(jwt.MapClaims)
 	roles := strings.Split(claims["roles"].(string), ",")
