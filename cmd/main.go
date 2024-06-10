@@ -62,7 +62,7 @@ func main() {
 		userRepository,
 	)
 	routesService := routes.NewRouteService(routeRepository, airportRepository)
-	securityService, err := users.NewSecurityService(conf.Security.RSAKey, userRepository)
+	securityService, err := users.NewSecurityService(conf.Security.RSAKey)
 	if err != nil {
 		log.Fatal("failed to initialize security ", err.Error())
 	}

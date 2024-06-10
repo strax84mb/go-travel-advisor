@@ -42,12 +42,12 @@ func (ur *userRepository) FindByID(id int64, loadUserRoles bool) (database.User,
 	)
 }
 
-func (ur *userRepository) FindByUsername(username string) (database.User, error) {
+func (ur *userRepository) FindByUsername(username string, loadUserRoles bool) (database.User, error) {
 	return ur.findUser(
 		func(tx *gorm.DB) *gorm.DB {
 			return tx.Where("username = ?", username)
 		},
-		false,
+		loadUserRoles,
 	)
 }
 

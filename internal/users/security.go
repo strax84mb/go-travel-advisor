@@ -13,9 +13,6 @@ import (
 	"gitlab.strale.io/go-travel/internal/database"
 )
 
-type userRepository interface {
-}
-
 type ErrUnauthorized struct {
 	message string
 }
@@ -31,18 +28,16 @@ func NewErrUnauthorizedWithCause(cause string) error {
 }
 
 type securityService struct {
-	userRepo userRepository
-	key      *rsa.PrivateKey
+	key *rsa.PrivateKey
 }
 
-func NewSecurityService(key string, userRepo userRepository) (*securityService, error) {
+func NewSecurityService(key string) (*securityService, error) {
 	rsaKey, err := jwt.ParseRSAPrivateKeyFromPEM([]byte(key))
 	if err != nil {
 		return nil, err
 	}
 	return &securityService{
-		userRepo: userRepo,
-		key:      rsaKey,
+		key: rsaKey,
 	}, nil
 }
 
