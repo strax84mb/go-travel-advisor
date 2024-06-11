@@ -23,7 +23,7 @@ type FlightAirportDto struct {
 type FlightDto struct {
 	From  FlightAirportDto `json:"from"`
 	To    FlightAirportDto `json:"to"`
-	Price float32          `json:"price"`
+	Price int32            `json:"price"`
 }
 
 func (f *FlightDto) Type() StepType {

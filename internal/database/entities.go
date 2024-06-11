@@ -65,5 +65,5 @@ type Route struct {
 	Source        *Airport `gorm:"foreignkey:SourceID;association_foreignkey:ID"`
 	DestinationID int64    `gorm:"type:bigint;not null"`
 	Destination   *Airport `gorm:"foreignkey:DestinationID;association_foreignkey:ID"`
-	Price         float32  `gorm:"type:float;not null"`
+	Price         int32    `gorm:"type:int;not null"`
 }

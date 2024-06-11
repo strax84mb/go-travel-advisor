@@ -9,8 +9,8 @@ import (
 )
 
 type CheapestPath struct {
-	Path      []Step  `json:"path"`
-	FullPrice float32 `json:"fullPrice"`
+	Path      []Step `json:"path"`
+	FullPrice int64  `json:"fullPrice"`
 }
 
 func routeToFlight(route *database.Route) *FlightDto {
@@ -52,7 +52,7 @@ func constructTransfer(prevRoute *database.Route, nextRoute *database.Route) *Tr
 	}
 }
 
-func CompileCheapestPath(routes []*database.Route, fullPrice float32) *CheapestPath {
+func CompileCheapestPath(routes []*database.Route, fullPrice int64) *CheapestPath {
 	if routes == nil {
 		return nil
 	}
@@ -99,7 +99,8 @@ func (cp *CheapestPath) Encode() ([]byte, error) {
 			}
 		}
 	}
-	_, err = buf.WriteString(fmt.Sprintf(`],"fullPrice":%f}`, cp.FullPrice))
+	//TODO
+	_, err = buf.WriteString(fmt.Sprintf(`],"fullPrice":%d}`, cp.FullPrice))
 	if err != nil {
 		return nil, err
 	}

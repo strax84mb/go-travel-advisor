@@ -16,7 +16,7 @@ type RouteDto struct {
 	ID          int64           `json:"id"`
 	Source      RouteAirportDto `json:"source"`
 	Destination RouteAirportDto `json:"destination"`
-	Price       float32         `json:"price"`
+	Price       int32           `json:"price"`
 }
 
 func RouteToDto(route database.Route) *RouteDto {

@@ -6,7 +6,7 @@ type CRNode struct {
 	Destinations     []*CRNode
 	Parent           *CRNode
 	Route            database.Route
-	AccumulatedPrice float32
+	AccumulatedPrice int64
 }
 
 func listPassedCities(crn *CRNode, ids []int64) []int64 {
@@ -27,7 +27,7 @@ func (crn *CRNode) ListPassedCities() []int64 {
 }
 
 type CheapestRouteWalk struct {
-	CheapestPrice       float32
+	CheapestPrice       int64
 	CheapestPathEndNode *CRNode
 	Expanded            bool
 	FinalCityID         int64

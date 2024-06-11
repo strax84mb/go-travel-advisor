@@ -233,11 +233,11 @@ handle_DestinationID:
 
 handle_Price:
 
-	/* handler: j.Price type=float32 kind=float32 quoted=false*/
+	/* handler: j.Price type=int32 kind=int32 quoted=false*/
 
 	{
-		if tok != fflib.FFTok_double && tok != fflib.FFTok_integer && tok != fflib.FFTok_null {
-			return fs.WrapErr(fmt.Errorf("cannot unmarshal %s into Go value for float32", tok))
+		if tok != fflib.FFTok_integer && tok != fflib.FFTok_null {
+			return fs.WrapErr(fmt.Errorf("cannot unmarshal %s into Go value for int32", tok))
 		}
 	}
 
@@ -247,13 +247,13 @@ handle_Price:
 
 		} else {
 
-			tval, err := fflib.ParseFloat(fs.Output.Bytes(), 32)
+			tval, err := fflib.ParseInt(fs.Output.Bytes(), 10, 32)
 
 			if err != nil {
 				return fs.WrapErr(err)
 			}
 
-			j.Price = float32(tval)
+			j.Price = int32(tval)
 
 		}
 	}

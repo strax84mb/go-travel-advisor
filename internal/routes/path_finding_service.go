@@ -36,7 +36,7 @@ func NewPathFindingService(airportRepo pfAirportRepository, cityRepo pfCityRepos
 	}
 }
 
-func (pfs *pathFindingService) FindCheapestPath(ctx context.Context, startCityID, finishCityID int64) ([]*database.Route, float32, error) {
+func (pfs *pathFindingService) FindCheapestPath(ctx context.Context, startCityID, finishCityID int64) ([]*database.Route, int64, error) {
 	walk := newCheapestRouteWalk(startCityID)
 	var err error
 	for {
@@ -173,7 +173,7 @@ func (pfs *pathFindingService) exapand(ctx context.Context, walk *CheapestRouteW
 			newNode := &CRNode{
 				Parent:           node,
 				Route:            route,
-				AccumulatedPrice: node.AccumulatedPrice + route.Price,
+				AccumulatedPrice: node.AccumulatedPrice + int64(route.Price),
 			}
 			if newNode.Route.Destination.CityID == walk.FinalCityID {
 				if walk.CheapestPathEndNode == nil {
