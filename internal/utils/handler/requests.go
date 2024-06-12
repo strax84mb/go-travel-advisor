@@ -23,6 +23,19 @@ func QueryAsInt(r *http.Request, param string, mandatory bool, defaultValue int,
 	return value, nil
 }
 
+func QueryAsInt64(r *http.Request, param string, mandatory bool, defaultValue int64, validators ...AtomicInt64Validator) (int64, error) {
+	value, err := query[int64](r, param, true, defaultValue)
+	if err != nil {
+		return 0, err
+	}
+	for _, validator := range validators {
+		if err = validator(param, value); err != nil {
+			return 0, err
+		}
+	}
+	return value, nil
+}
+
 func QueryAsString(r *http.Request, param string, mandatory bool, defaultValue string, validators ...AtomicStringValidator) (string, error) {
 	value, err := query[string](r, param, true, defaultValue)
 	if err != nil {
@@ -36,7 +49,7 @@ func QueryAsString(r *http.Request, param string, mandatory bool, defaultValue s
 	return value, nil
 }
 
-func query[T int | string](
+func query[T int | int64 | string](
 	r *http.Request,
 	param string,
 	mandatory bool,
@@ -60,6 +73,12 @@ func query[T int | string](
 		val = any(strValue).(T)
 	case int:
 		t, err = strconv.Atoi(strValue)
+		if err != nil {
+			return val, ErrBadRequest{message: fmt.Sprintf("%s is malformed", param)}
+		}
+		val = any(t).(T)
+	case int64:
+		t, err = strconv.ParseInt(strValue, 10, 64)
 		if err != nil {
 			return val, ErrBadRequest{message: fmt.Sprintf("%s is malformed", param)}
 		}

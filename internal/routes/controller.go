@@ -21,13 +21,19 @@ type iRouteService interface {
 	DeleteRoute(ctx context.Context, id int64) error
 }
 
-type routeController struct {
-	routeSrvc iRouteService
+type iPathFindingService interface {
+	FindCheapestPath(ctx context.Context, startCityID, finishCityID int64) ([]*database.Route, int64, error)
 }
 
-func NewRouteController(routeSrvc iRouteService) *routeController {
+type routeController struct {
+	routeSrvc iRouteService
+	pfSrvc    iPathFindingService
+}
+
+func NewRouteController(routeSrvc iRouteService, pfSrvc iPathFindingService) *routeController {
 	return &routeController{
 		routeSrvc: routeSrvc,
+		pfSrvc:    pfSrvc,
 	}
 }
 
@@ -50,8 +56,7 @@ func (rc *routeController) RegisterHandlers(input RegisterHandlersInput) {
 
 	input.CityRouter.Path("/{id}/routes").Methods(http.MethodGet).HandlerFunc(rc.listRoutesForCity)
 
-	// TODO implement this
-	// /cheapest-route?begin=?&end=?
+	input.V1Router.Path("/cheapest-route").Methods(http.MethodGet).HandlerFunc(rc.cheapestPath)
 }
 
 func (rc *routeController) doList(
@@ -187,4 +192,29 @@ func (rc *routeController) delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	handler.Respond(w, http.StatusOK, nil)
+}
+
+func (rc *routeController) cheapestPath(w http.ResponseWriter, r *http.Request) {
+	beginID, err := handler.QueryAsInt64(r, "begin", true, 0, handler.IntMustBePositive)
+	if err != nil {
+		handler.ResolveErrorResponse(w, err)
+		return
+	}
+	endID, err := handler.QueryAsInt64(r, "end", true, 0, handler.IntMustBePositive)
+	if err != nil {
+		handler.ResolveErrorResponse(w, err)
+		return
+	}
+	path, cheapestPrice, err := rc.pfSrvc.FindCheapestPath(r.Context(), beginID, endID)
+	if err != nil {
+		handler.ResolveErrorResponse(w, err)
+		return
+	}
+	payload, err := dto.CompileCheapestPath(path, cheapestPrice).Encode()
+	if err != nil {
+		handler.ResolveErrorResponse(w, err)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+	_, _ = w.Write(payload)
 }

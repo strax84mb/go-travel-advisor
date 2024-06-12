@@ -67,11 +67,16 @@ func main() {
 		log.Fatal("failed to initialize security ", err.Error())
 	}
 	userService := users.NewUserService(userRepository, securityService)
+	pathFindingService := routes.NewPathFindingService(
+		airportRepository,
+		cityRepository,
+		routeRepository,
+	)
 
 	cityController := cities.NewCityController(cityService)
 	airportController := airports.NewAirportController(airportService)
 	commentsController := comments.NewCommentController(commentService)
-	routesController := routes.NewRouteController(routesService)
+	routesController := routes.NewRouteController(routesService, pathFindingService)
 	usersController := users.NewUserController(userService)
 
 	jwtMiddleware := middleware.NewVerifyJWTMiddleware(securityService)
