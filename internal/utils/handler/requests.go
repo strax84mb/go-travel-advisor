@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -106,19 +105,6 @@ func PathAsInt64(r *http.Request, param string, validators ...AtomicInt64Validat
 		}
 	}
 	return intValue, nil
-}
-
-func GetBody(r *http.Request, target interface{}) error {
-	body := r.Body
-	defer body.Close()
-	bytes, err := io.ReadAll(body)
-	if err != nil {
-		return ErrBadRequest{message: fmt.Sprintf("payload cannot be extracted: %s", err.Error())}
-	}
-	if err = json.Unmarshal(bytes, target); err != nil {
-		return ErrBadRequest{message: fmt.Sprintf("payload is malformed: %s", err.Error())}
-	}
-	return nil
 }
 
 type Unmarshalable interface {
