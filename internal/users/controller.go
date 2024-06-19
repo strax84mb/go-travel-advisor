@@ -66,12 +66,12 @@ func (uc *userController) GetUserByUsername(w http.ResponseWriter, r *http.Reque
 }
 
 func (uc *userController) GetUserById(w http.ResponseWriter, r *http.Request) {
-	id, err := handler.Path[handler.Int64](r, "id", handler.IsPositive)
+	id, err := handler.Path(r, handler.Int64FromString, "id", handler.IsPositive)
 	if err != nil {
 		handler.ResolveErrorResponse(w, err)
 		return
 	}
-	user, err := uc.userSrvc.GetByID(r.Context(), int64(id))
+	user, err := uc.userSrvc.GetByID(r.Context(), id.Val())
 	if err != nil {
 		handler.ResolveErrorResponse(w, err)
 		return

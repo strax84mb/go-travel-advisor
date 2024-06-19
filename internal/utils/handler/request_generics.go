@@ -8,51 +8,45 @@ import (
 	"github.com/gorilla/mux"
 )
 
-type ParamValue[T Int64 | Int | String] interface {
-	FromString(val string) error
+type Value[V int | int64 | string] struct {
+	val V
+}
+
+func (v *Value[V]) Val() V {
+	return v.val
+}
+
+type PrimitiveValue[
+	V int | int64 | string,
+	T Value[V],
+] interface {
+	Val() V
 	*T
 }
 
-type Int64 int64
-
-func (i64 *Int64) FromString(val string) error {
-	i, err := strconv.ParseInt(val, 10, 64)
-	if err == nil {
-		*i64 = Int64(i)
-		return nil
-	} else {
-		return err
-	}
+func Int64FromString(val string) (int64, error) {
+	return strconv.ParseInt(val, 10, 64)
 }
 
-type Int int
-
-func (i *Int) FromString(val string) error {
-	ival, err := strconv.Atoi(val)
-	if err == nil {
-		*i = Int(ival)
-		return nil
-	} else {
-		return err
-	}
+func IntFromString(val string) (int, error) {
+	return strconv.Atoi(val)
 }
 
-type String string
-
-func (s *String) FromString(val string) error {
-	*s = String(val)
-	return nil
+func StringFromString(val string) (string, error) {
+	return val, nil
 }
 
 func Query[
-	T Int64 | Int | String,
-	PT ParamValue[T],
+	V int | int64 | string,
+	T Value[V],
+	PV PrimitiveValue[V, T],
 ](
 	r *http.Request,
+	parse func(string) (V, error),
 	param string,
 	mandatory bool,
-	defaultValue T,
-	validators ...AtomicValidator[T],
+	defaultValue V,
+	validators ...AtomicValidator[V, T, PV],
 ) (T, error) {
 	present := r.URL.Query().Has(param)
 	strValue := r.URL.Query().Get(param)
@@ -65,12 +59,13 @@ func Query[
 			return val, mandatoryQueryNotPresent(param)
 		}
 	} else if !present {
-		return defaultValue, nil
+		return T{val: defaultValue}, nil
 	}
-	err = PT.FromString(&val, strValue)
+	v, err := parse(strValue)
 	if err != nil {
 		return val, ErrBadRequest{message: fmt.Sprintf("%s is malformed", param)}
 	}
+	val = T{val: v}
 
 	for _, validator := range validators {
 		if err = validator(param, val); err != nil {
@@ -82,12 +77,14 @@ func Query[
 }
 
 func Path[
-	T Int | Int64 | String,
-	PT ParamValue[T],
+	V int | int64 | string,
+	T Value[V],
+	PV PrimitiveValue[V, T],
 ](
 	r *http.Request,
+	parse func(string) (V, error),
 	param string,
-	validators ...AtomicValidator[T],
+	validators ...AtomicValidator[V, T, PV],
 ) (T, error) {
 	var val T
 	vars := mux.Vars(r)
@@ -98,10 +95,11 @@ func Path[
 	if !found {
 		return val, ErrBadRequest{message: fmt.Sprintf("%s not present", param)}
 	}
-	err := PT.FromString(&val, strValue)
+	v, err := parse(strValue)
 	if err != nil {
 		return val, ErrBadRequest{message: fmt.Sprintf("%s is malformed", param)}
 	}
+	val = T{val: v}
 
 	for _, validator := range validators {
 		if err = validator(param, val); err != nil {

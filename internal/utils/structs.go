@@ -32,18 +32,18 @@ func PaginationFrom(page, pageSize int) Pagination {
 //   - pagination --> pagination object
 //   - ok --> no error happened and operation was successful
 func PaginationFromRequest(w http.ResponseWriter, r *http.Request) (Pagination, bool) {
-	page, err := handler.Query[handler.Int](r, "page", false, 0, handler.IsZeroOrPositive)
+	page, err := handler.Query(r, handler.IntFromString, "page", false, 0, handler.IsZeroOrPositive)
 	if err != nil {
 		handler.ResolveErrorResponse(w, err)
 		return Pagination{}, false
 	}
-	pageSize, err := handler.Query[handler.Int](r, "page-size", false, 10, handler.IsZeroOrPositive)
+	pageSize, err := handler.Query(r, handler.IntFromString, "page-size", false, 10, handler.IsZeroOrPositive)
 	if err != nil {
 		handler.ResolveErrorResponse(w, err)
 		return Pagination{}, false
 	}
 	return Pagination{
-		Limit:  int(pageSize),
-		Offset: int(page) * int(pageSize),
+		Limit:  pageSize.Val(),
+		Offset: page.Val() * pageSize.Val(),
 	}, true
 }

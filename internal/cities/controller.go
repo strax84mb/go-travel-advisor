@@ -57,13 +57,13 @@ func (cc *cityController) ListAllCities(w http.ResponseWriter, r *http.Request) 
 }
 
 func (cc *cityController) GetCityByID(w http.ResponseWriter, r *http.Request) {
-	id, err := handler.Path[handler.Int64](r, "id", handler.IsPositive)
+	id, err := handler.Path(r, handler.Int64FromString, "id", handler.IsPositive)
 	if err != nil {
 		handler.ResolveErrorResponse(w, err)
 		return
 	}
 	ctx := r.Context()
-	city, err := cc.citySrvc.FindByID(ctx, int64(id))
+	city, err := cc.citySrvc.FindByID(ctx, id.Val())
 	if err != nil {
 		handler.ResolveErrorResponse(w, err)
 		return
@@ -87,7 +87,7 @@ func (cc *cityController) SaveNewCity(w http.ResponseWriter, r *http.Request) {
 }
 
 func (cc *cityController) UpdateCity(w http.ResponseWriter, r *http.Request) {
-	id, err := handler.Path[handler.Int64](r, "id", handler.IsPositive)
+	id, err := handler.Path(r, handler.Int64FromString, "id", handler.IsPositive)
 	if err != nil {
 		handler.ResolveErrorResponse(w, err)
 		return
@@ -99,7 +99,7 @@ func (cc *cityController) UpdateCity(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	ctx := r.Context()
-	err = cc.citySrvc.UpdateCity(ctx, int64(id), payload.Name)
+	err = cc.citySrvc.UpdateCity(ctx, id.Val(), payload.Name)
 	if err != nil {
 		handler.ResolveErrorResponse(w, err)
 		return
@@ -108,12 +108,12 @@ func (cc *cityController) UpdateCity(w http.ResponseWriter, r *http.Request) {
 }
 
 func (cc *cityController) DeleteCity(w http.ResponseWriter, r *http.Request) {
-	id, err := handler.Path[handler.Int64](r, "id", handler.IsPositive)
+	id, err := handler.Path(r, handler.Int64FromString, "id", handler.IsPositive)
 	if err != nil {
 		handler.ResolveErrorResponse(w, err)
 		return
 	}
-	err = cc.citySrvc.DeleteCity(r.Context(), int64(id))
+	err = cc.citySrvc.DeleteCity(r.Context(), id.Val())
 	if err != nil {
 		handler.ResolveErrorResponse(w, err)
 		return

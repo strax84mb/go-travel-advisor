@@ -10,8 +10,8 @@ import (
 )
 
 func TestMyCode(t *testing.T) {
-	req := httptest.NewRequest(http.MethodGet, "/temp?id=-123", nil)
-	i, err := handler.Query[handler.Int64](req, "id", true, 1, handler.IsPositive)
+	req := httptest.NewRequest(http.MethodGet, "/temp?id=123", nil)
+	i, err := handler.Query(req, handler.Int64FromString, "id", true, 1, handler.IsPositive)
 	assert.NoError(t, err)
-	assert.Equal(t, int64(123), int64(i))
+	assert.Equal(t, int64(123), i.Val())
 }
