@@ -48,38 +48,32 @@ func (ac *airportController) RegisterHandlers(airportPrefixed *mux.Router, cityP
 func (ac *airportController) listAirports(
 	w http.ResponseWriter,
 	r *http.Request,
-	getter func(page, pageSize int) ([]database.Airport, error),
+	getter func(pagination utils.Pagination) ([]database.Airport, error),
 ) {
-	page, err := handler.QueryAsInt(r, "page", false, 0, handler.IntMustBeZeroOrPositive)
+	pagination, ok := utils.PaginationFromRequest(w, r)
+	if !ok {
+		return
+	}
+	airports, err := getter(pagination)
 	if err != nil {
 		handler.ResolveErrorResponse(w, err)
 		return
 	}
-	pageSize, err := handler.QueryAsInt(r, "page-size", false, 10, handler.IntMustBePositive)
-	if err != nil {
-		handler.ResolveErrorResponse(w, err)
-		return
-	}
-	airports, err := getter(page, pageSize)
-	if err != nil {
-		handler.ResolveErrorResponse(w, err)
-		return
-	}
-	handler.RespondFF(w, http.StatusOK, dto.AirportsToDtos(airports))
+	handler.Respond(w, http.StatusOK, dto.AirportsToDtos(airports))
 }
 
 func (ac *airportController) ListAllAirports(w http.ResponseWriter, r *http.Request) {
 	ac.listAirports(
 		w,
 		r,
-		func(page, pageSize int) ([]database.Airport, error) {
-			return ac.airportSrvc.ListAirports(r.Context(), utils.PaginationFrom(page, pageSize))
+		func(pagination utils.Pagination) ([]database.Airport, error) {
+			return ac.airportSrvc.ListAirports(r.Context(), pagination)
 		},
 	)
 }
 
 func (ac *airportController) ListAirportsInCity(w http.ResponseWriter, r *http.Request) {
-	cityID, err := handler.PathAsInt64(r, "id", handler.IntMustBePositive)
+	cityID, err := handler.Path[handler.Int64](r, "id", handler.IsPositive)
 	if err != nil {
 		handler.ResolveErrorResponse(w, err)
 		return
@@ -87,19 +81,19 @@ func (ac *airportController) ListAirportsInCity(w http.ResponseWriter, r *http.R
 	ac.listAirports(
 		w,
 		r,
-		func(page, pageSize int) ([]database.Airport, error) {
-			return ac.airportSrvc.ListAirportsInCity(r.Context(), cityID, utils.PaginationFrom(page, pageSize))
+		func(pagination utils.Pagination) ([]database.Airport, error) {
+			return ac.airportSrvc.ListAirportsInCity(r.Context(), int64(cityID), pagination)
 		},
 	)
 }
 
 func (ac *airportController) GetAirportByID(w http.ResponseWriter, r *http.Request) {
-	id, err := handler.PathAsInt64(r, "id", handler.IntMustBePositive)
+	id, err := handler.Path[handler.Int64](r, "id", handler.IsPositive)
 	if err != nil {
 		handler.ResolveErrorResponse(w, err)
 		return
 	}
-	airport, err := ac.airportSrvc.FindByID(r.Context(), id)
+	airport, err := ac.airportSrvc.FindByID(r.Context(), int64(id))
 	if err != nil {
 		handler.ResolveErrorResponse(w, err)
 		return
@@ -109,7 +103,7 @@ func (ac *airportController) GetAirportByID(w http.ResponseWriter, r *http.Reque
 
 func (ac *airportController) SaveNewAirport(w http.ResponseWriter, r *http.Request) {
 	var payload dto.SaveAirportDto
-	err := handler.GetBodyFF(r, &payload)
+	err := handler.GetBody(r, &payload)
 	if err != nil {
 		handler.ResolveErrorResponse(w, err)
 		return
@@ -126,19 +120,19 @@ func (ac *airportController) SaveNewAirport(w http.ResponseWriter, r *http.Reque
 }
 
 func (ac *airportController) UpdateAirport(w http.ResponseWriter, r *http.Request) {
-	id, err := handler.PathAsInt64(r, "id", handler.IntMustBePositive)
+	id, err := handler.Path[handler.Int64](r, "id", handler.IsPositive)
 	if err != nil {
 		handler.ResolveErrorResponse(w, err)
 		return
 	}
 	var payload dto.SaveAirportDto
-	err = handler.GetBodyFF(r, &payload)
+	err = handler.GetBody(r, &payload)
 	if err != nil {
 		handler.ResolveErrorResponse(w, err)
 		return
 	}
 	err = ac.airportSrvc.UpdateAirport(r.Context(), database.Airport{
-		ID:     id,
+		ID:     int64(id),
 		Name:   payload.Name,
 		CityID: payload.CityID,
 	})
@@ -150,12 +144,12 @@ func (ac *airportController) UpdateAirport(w http.ResponseWriter, r *http.Reques
 }
 
 func (ac *airportController) DeleteAirport(w http.ResponseWriter, r *http.Request) {
-	id, err := handler.PathAsInt64(r, "id", handler.IntMustBePositive)
+	id, err := handler.Path[handler.Int64](r, "id", handler.IsPositive)
 	if err != nil {
 		handler.ResolveErrorResponse(w, err)
 		return
 	}
-	err = ac.airportSrvc.DeleteAirport(r.Context(), id)
+	err = ac.airportSrvc.DeleteAirport(r.Context(), int64(id))
 	if err != nil {
 		handler.ResolveErrorResponse(w, err)
 		return

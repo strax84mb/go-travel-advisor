@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"gitlab.strale.io/go-travel/internal/database"
+	"gitlab.strale.io/go-travel/internal/utils"
 	"gorm.io/gorm"
 )
 
@@ -17,16 +18,11 @@ func NewCityRepository(db *database.Database) *CityRepository {
 	}
 }
 
-type FindInput struct {
-	Offset int
-	Limit  int
-}
-
-func (cr *CityRepository) Find(input FindInput) ([]database.City, error) {
+func (cr *CityRepository) Find(pagination utils.Pagination) ([]database.City, error) {
 	var result []database.City
 	tx := cr.db.DB.
-		Limit(input.Limit).
-		Offset(input.Offset).
+		Limit(pagination.Limit).
+		Offset(pagination.Offset).
 		Find(&result)
 	if tx.Error != nil {
 		return nil, fmt.Errorf("failed to read cities: %w", tx.Error)

@@ -8,12 +8,13 @@ import (
 
 	"github.com/gorilla/mux"
 	"gitlab.strale.io/go-travel/internal/database"
+	"gitlab.strale.io/go-travel/internal/utils"
 	"gitlab.strale.io/go-travel/internal/utils/handler"
 	"gitlab.strale.io/go-travel/internal/utils/handler/dto"
 )
 
 type iCityService interface {
-	ListCities(ctx context.Context, offset, limit int) ([]database.City, error)
+	ListCities(ctx context.Context, pagination utils.Pagination) ([]database.City, error)
 	FindByID(ctx context.Context, id int64) (database.City, error)
 	SaveNewCity(ctx context.Context, name string) (database.City, error)
 	UpdateCity(ctx context.Context, id int64, name string) error
@@ -42,43 +43,37 @@ func (cc *cityController) RegisterHandlers(r *mux.Router) {
 }
 
 func (cc *cityController) ListAllCities(w http.ResponseWriter, r *http.Request) {
-	page, err := handler.QueryAsInt(r, "page", false, 0, handler.IntMustBeZeroOrPositive)
-	if err != nil {
-		handler.ResolveErrorResponse(w, err)
-		return
-	}
-	pageSize, err := handler.QueryAsInt(r, "page-size", false, 10, handler.IntMustBePositive)
-	if err != nil {
-		handler.ResolveErrorResponse(w, err)
+	pagination, ok := utils.PaginationFromRequest(w, r)
+	if !ok {
 		return
 	}
 	ctx := r.Context()
-	cities, err := cc.citySrvc.ListCities(ctx, page*pageSize, pageSize)
+	cities, err := cc.citySrvc.ListCities(ctx, pagination)
 	if err != nil {
 		handler.ResolveErrorResponse(w, err)
 		return
 	}
-	handler.RespondFF(w, http.StatusOK, dto.CitiesToDtos(cities))
+	handler.Respond(w, http.StatusOK, dto.CitiesToDtos(cities))
 }
 
 func (cc *cityController) GetCityByID(w http.ResponseWriter, r *http.Request) {
-	id, err := handler.PathAsInt64(r, "id", handler.IntMustBePositive)
+	id, err := handler.Path[handler.Int64](r, "id", handler.IsPositive)
 	if err != nil {
 		handler.ResolveErrorResponse(w, err)
 		return
 	}
 	ctx := r.Context()
-	city, err := cc.citySrvc.FindByID(ctx, id)
+	city, err := cc.citySrvc.FindByID(ctx, int64(id))
 	if err != nil {
 		handler.ResolveErrorResponse(w, err)
 		return
 	}
-	handler.RespondFF(w, http.StatusOK, dto.CityToDto(city))
+	handler.Respond(w, http.StatusOK, dto.CityToDto(city))
 }
 
 func (cc *cityController) SaveNewCity(w http.ResponseWriter, r *http.Request) {
 	var payload dto.SaveCityDto
-	err := handler.GetBodyFF(r, &payload)
+	err := handler.GetBody(r, &payload)
 	if err != nil {
 		handler.ResolveErrorResponse(w, err)
 		return
@@ -88,23 +83,23 @@ func (cc *cityController) SaveNewCity(w http.ResponseWriter, r *http.Request) {
 		handler.ResolveErrorResponse(w, err)
 		return
 	}
-	handler.RespondFF(w, http.StatusCreated, dto.CityToDto(city))
+	handler.Respond(w, http.StatusCreated, dto.CityToDto(city))
 }
 
 func (cc *cityController) UpdateCity(w http.ResponseWriter, r *http.Request) {
-	id, err := handler.PathAsInt64(r, "id", handler.IntMustBePositive)
+	id, err := handler.Path[handler.Int64](r, "id", handler.IsPositive)
 	if err != nil {
 		handler.ResolveErrorResponse(w, err)
 		return
 	}
 	var payload dto.SaveCityDto
-	err = handler.GetBodyFF(r, &payload)
+	err = handler.GetBody(r, &payload)
 	if err != nil {
 		handler.ResolveErrorResponse(w, err)
 		return
 	}
 	ctx := r.Context()
-	err = cc.citySrvc.UpdateCity(ctx, id, payload.Name)
+	err = cc.citySrvc.UpdateCity(ctx, int64(id), payload.Name)
 	if err != nil {
 		handler.ResolveErrorResponse(w, err)
 		return
@@ -113,12 +108,12 @@ func (cc *cityController) UpdateCity(w http.ResponseWriter, r *http.Request) {
 }
 
 func (cc *cityController) DeleteCity(w http.ResponseWriter, r *http.Request) {
-	id, err := handler.PathAsInt64(r, "id", handler.IntMustBePositive)
+	id, err := handler.Path[handler.Int64](r, "id", handler.IsPositive)
 	if err != nil {
 		handler.ResolveErrorResponse(w, err)
 		return
 	}
-	err = cc.citySrvc.DeleteCity(r.Context(), id)
+	err = cc.citySrvc.DeleteCity(r.Context(), int64(id))
 	if err != nil {
 		handler.ResolveErrorResponse(w, err)
 		return

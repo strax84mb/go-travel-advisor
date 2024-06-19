@@ -6,6 +6,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"gitlab.strale.io/go-travel/internal/cities/repository"
 	"gitlab.strale.io/go-travel/internal/database"
+	"gitlab.strale.io/go-travel/internal/utils"
 	"gitlab.strale.io/go-travel/internal/utils/testutils"
 )
 
@@ -19,7 +20,7 @@ var (
 )
 
 type cityRepository interface {
-	Find(input repository.FindInput) ([]database.City, error)
+	Find(pagination utils.Pagination) ([]database.City, error)
 	FindByIDs(ids []int64) ([]database.City, error)
 	FindByID(id int64, preload bool) (database.City, error)
 	FindByName(name string, preload bool) (database.City, error)
@@ -65,10 +66,7 @@ func getCity(cities []database.City, name string) *database.City {
 func TestGetCities(t *testing.T) {
 	repo, _, err := setupCities()
 	assert.NoError(t, err)
-	cities, err := repo.Find(repository.FindInput{
-		Offset: 0,
-		Limit:  10,
-	})
+	cities, err := repo.Find(utils.PaginationFrom(0, 10))
 	assert.NoError(t, err)
 	assert.Equal(t, 2, len(cities))
 	assert.True(t, cityPresent(cities, "Beograd"))

@@ -4,21 +4,11 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+
+	"github.com/gorilla/mux"
 )
 
-type AtomicValidatorGeneric[T Int64 | String] func(param string, val T) error
-
-var GreaterThanZero AtomicValidatorGeneric[Int64] = func(param string, val Int64) error {
-	value := int64(val)
-	if value <= 0 {
-		return ErrBadRequest{
-			message: fmt.Sprintf("%s must be positive", param),
-		}
-	}
-	return nil
-}
-
-type ParamValue[T Int64 | String] interface {
+type ParamValue[T Int64 | Int | String] interface {
 	FromString(val string) error
 	*T
 }
@@ -35,6 +25,18 @@ func (i64 *Int64) FromString(val string) error {
 	}
 }
 
+type Int int
+
+func (i *Int) FromString(val string) error {
+	ival, err := strconv.Atoi(val)
+	if err == nil {
+		*i = Int(ival)
+		return nil
+	} else {
+		return err
+	}
+}
+
 type String string
 
 func (s *String) FromString(val string) error {
@@ -42,15 +44,15 @@ func (s *String) FromString(val string) error {
 	return nil
 }
 
-func QueryGen[
-	T Int64 | String,
+func Query[
+	T Int64 | Int | String,
 	PT ParamValue[T],
 ](
 	r *http.Request,
 	param string,
 	mandatory bool,
 	defaultValue T,
-	validators ...AtomicValidatorGeneric[T],
+	validators ...AtomicValidator[T],
 ) (T, error) {
 	present := r.URL.Query().Has(param)
 	strValue := r.URL.Query().Get(param)
@@ -76,5 +78,35 @@ func QueryGen[
 		}
 	}
 
+	return val, nil
+}
+
+func Path[
+	T Int | Int64 | String,
+	PT ParamValue[T],
+](
+	r *http.Request,
+	param string,
+	validators ...AtomicValidator[T],
+) (T, error) {
+	var val T
+	vars := mux.Vars(r)
+	if vars == nil {
+		return val, ErrBadRequest{message: "path parameters not found"}
+	}
+	strValue, found := vars[param]
+	if !found {
+		return val, ErrBadRequest{message: fmt.Sprintf("%s not present", param)}
+	}
+	err := PT.FromString(&val, strValue)
+	if err != nil {
+		return val, ErrBadRequest{message: fmt.Sprintf("%s is malformed", param)}
+	}
+
+	for _, validator := range validators {
+		if err = validator(param, val); err != nil {
+			return val, err
+		}
+	}
 	return val, nil
 }

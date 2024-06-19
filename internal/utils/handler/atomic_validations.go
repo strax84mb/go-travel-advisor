@@ -2,48 +2,35 @@ package handler
 
 import "fmt"
 
-type AtomicInt64Validator func(name string, value int64) error
+type AtomicValidator[T Int64 | Int | String] func(param string, val T) error
 
-func IntMustBePositive(name string, value int64) error {
-	if value <= 0 {
+type NumValidator[T Int64 | Int] AtomicValidator[T]
+
+func IsPositive[T Int64 | Int](param string, val T) error {
+	if val <= 0 {
 		return ErrBadRequest{
-			message: fmt.Sprintf("%s must be positive", name),
+			message: fmt.Sprintf("%s must be positive", param),
 		}
 	}
-
 	return nil
 }
 
-func IntMustBeZeroOrPositive(name string, value int64) error {
-	if value < 0 {
+func IsZeroOrPositive[T Int64 | Int](param string, val T) error {
+	if val < 0 {
 		return ErrBadRequest{
-			message: fmt.Sprintf("%s must be zero or positive", name),
+			message: fmt.Sprintf("%s must be zero or positive", param),
 		}
 	}
-
 	return nil
 }
 
-type AtomicStringValidator func(name string, value string) error
+type AtomicStringValidator AtomicValidator[String]
 
-type AtomicValidator func(name string, value any) error
-
-func IntIsPositive(name string, value any) error {
-	if value.(int64) <= 0 {
+func IsNotEmpty(param string, value string) error {
+	if value == "" {
 		return ErrBadRequest{
-			message: fmt.Sprintf("%s must be positive", name),
+			message: param + " must not be empty",
 		}
 	}
-
-	return nil
-}
-
-func IntIsZeroOrPositive(name string, value any) error {
-	if value.(int64) < 0 {
-		return ErrBadRequest{
-			message: fmt.Sprintf("%s must be zero or positive", name),
-		}
-	}
-
 	return nil
 }

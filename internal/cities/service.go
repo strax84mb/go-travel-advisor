@@ -9,12 +9,12 @@ import (
 	"strings"
 
 	"github.com/sirupsen/logrus"
-	"gitlab.strale.io/go-travel/internal/cities/repository"
 	"gitlab.strale.io/go-travel/internal/database"
+	"gitlab.strale.io/go-travel/internal/utils"
 )
 
 type cityRepository interface {
-	Find(input repository.FindInput) ([]database.City, error)
+	Find(pagination utils.Pagination) ([]database.City, error)
 	FindByID(id int64, preload bool) (database.City, error)
 	SaveNew(city database.City) (database.City, error)
 	Update(city database.City) error
@@ -37,11 +37,8 @@ func NewCityService(cityRepo cityRepository, airportRepo airportRepository) *cit
 	}
 }
 
-func (cs *cityService) ListCities(ctx context.Context, offset int, limit int) ([]database.City, error) {
-	cities, err := cs.cityRepo.Find(repository.FindInput{
-		Offset: offset,
-		Limit:  limit,
-	})
+func (cs *cityService) ListCities(ctx context.Context, pagination utils.Pagination) ([]database.City, error) {
+	cities, err := cs.cityRepo.Find(pagination)
 	if err != nil {
 		logrus.WithError(err).WithContext(ctx).Error("error listing cities")
 		return nil, fmt.Errorf("error listing cities: %w", err)

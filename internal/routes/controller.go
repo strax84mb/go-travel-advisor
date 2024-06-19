@@ -73,7 +73,7 @@ func (rc *routeController) doList(
 		handler.ResolveErrorResponse(w, err)
 		return
 	}
-	handler.RespondFF(w, http.StatusOK, dto.RoutesToDtos(list))
+	handler.Respond(w, http.StatusOK, dto.RoutesToDtos(list))
 }
 
 func (rc *routeController) listRoutes(w http.ResponseWriter, r *http.Request) {
@@ -96,7 +96,7 @@ func getDirection(r *http.Request) Direction {
 }
 
 func (rc *routeController) listRoutesForCity(w http.ResponseWriter, r *http.Request) {
-	cityID, err := handler.PathAsInt64(r, "id", handler.IntMustBePositive)
+	cityID, err := handler.Path[handler.Int64](r, "id", handler.IsPositive)
 	if err != nil {
 		handler.ResolveErrorResponse(w, err)
 		return
@@ -104,7 +104,7 @@ func (rc *routeController) listRoutesForCity(w http.ResponseWriter, r *http.Requ
 	rc.doList(w, r, func(pagination utils.Pagination) ([]database.Route, error) {
 		return rc.routeSrvc.ListRoutesForCity(
 			r.Context(),
-			cityID,
+			int64(cityID),
 			getDirection(r),
 			pagination,
 		)
@@ -112,7 +112,7 @@ func (rc *routeController) listRoutesForCity(w http.ResponseWriter, r *http.Requ
 }
 
 func (rc *routeController) listRoutesForAirport(w http.ResponseWriter, r *http.Request) {
-	airportID, err := handler.PathAsInt64(r, "id", handler.IntMustBePositive)
+	airportID, err := handler.Path[handler.Int64](r, "id", handler.IsPositive)
 	if err != nil {
 		handler.ResolveErrorResponse(w, err)
 		return
@@ -120,7 +120,7 @@ func (rc *routeController) listRoutesForAirport(w http.ResponseWriter, r *http.R
 	rc.doList(w, r, func(pagination utils.Pagination) ([]database.Route, error) {
 		return rc.routeSrvc.ListRoutesForAirport(
 			r.Context(),
-			airportID,
+			int64(airportID),
 			getDirection(r),
 			pagination,
 		)
@@ -128,22 +128,22 @@ func (rc *routeController) listRoutesForAirport(w http.ResponseWriter, r *http.R
 }
 
 func (rc *routeController) findByID(w http.ResponseWriter, r *http.Request) {
-	id, err := handler.PathAsInt64(r, "id", handler.IntMustBePositive)
+	id, err := handler.Path[handler.Int64](r, "id", handler.IsPositive)
 	if err != nil {
 		handler.ResolveErrorResponse(w, err)
 		return
 	}
-	route, err := rc.routeSrvc.RouteByID(r.Context(), id)
+	route, err := rc.routeSrvc.RouteByID(r.Context(), int64(id))
 	if err != nil {
 		handler.ResolveErrorResponse(w, err)
 		return
 	}
-	handler.RespondFF(w, http.StatusCreated, dto.RouteToDto(*route))
+	handler.Respond(w, http.StatusCreated, dto.RouteToDto(*route))
 }
 
 func (rc *routeController) saveNewRoute(w http.ResponseWriter, r *http.Request) {
 	var payload dto.SaveRouteDto
-	err := handler.GetBodyFF(r, &payload)
+	err := handler.GetBody(r, &payload)
 	if err != nil {
 		handler.ResolveErrorResponse(w, err)
 		return
@@ -157,22 +157,22 @@ func (rc *routeController) saveNewRoute(w http.ResponseWriter, r *http.Request) 
 		handler.ResolveErrorResponse(w, err)
 		return
 	}
-	handler.RespondFF(w, http.StatusOK, dto.RouteToDto(*route))
+	handler.Respond(w, http.StatusOK, dto.RouteToDto(*route))
 }
 
 func (rc *routeController) update(w http.ResponseWriter, r *http.Request) {
-	id, err := handler.PathAsInt64(r, "id", handler.IntMustBePositive)
+	id, err := handler.Path[handler.Int64](r, "id", handler.IsPositive)
 	if err != nil {
 		handler.ResolveErrorResponse(w, err)
 		return
 	}
 	var payload dto.UpdateRoutePrice
-	err = handler.GetBodyFF(r, &payload)
+	err = handler.GetBody(r, &payload)
 	if err != nil {
 		handler.ResolveErrorResponse(w, err)
 		return
 	}
-	err = rc.routeSrvc.UpdateRoutePrice(r.Context(), id, payload.Price)
+	err = rc.routeSrvc.UpdateRoutePrice(r.Context(), int64(id), payload.Price)
 	if err != nil {
 		handler.ResolveErrorResponse(w, err)
 		return
@@ -181,12 +181,12 @@ func (rc *routeController) update(w http.ResponseWriter, r *http.Request) {
 }
 
 func (rc *routeController) delete(w http.ResponseWriter, r *http.Request) {
-	id, err := handler.PathAsInt64(r, "id", handler.IntMustBePositive)
+	id, err := handler.Path[handler.Int64](r, "id", handler.IsPositive)
 	if err != nil {
 		handler.ResolveErrorResponse(w, err)
 		return
 	}
-	err = rc.routeSrvc.DeleteRoute(r.Context(), id)
+	err = rc.routeSrvc.DeleteRoute(r.Context(), int64(id))
 	if err != nil {
 		handler.ResolveErrorResponse(w, err)
 		return
@@ -195,17 +195,17 @@ func (rc *routeController) delete(w http.ResponseWriter, r *http.Request) {
 }
 
 func (rc *routeController) cheapestPath(w http.ResponseWriter, r *http.Request) {
-	beginID, err := handler.QueryAsInt64(r, "begin", true, 0, handler.IntMustBePositive)
+	beginID, err := handler.Query[handler.Int64](r, "begin", true, 0, handler.IsPositive)
 	if err != nil {
 		handler.ResolveErrorResponse(w, err)
 		return
 	}
-	endID, err := handler.QueryAsInt64(r, "end", true, 0, handler.IntMustBePositive)
+	endID, err := handler.Query[handler.Int64](r, "end", true, 0, handler.IsPositive)
 	if err != nil {
 		handler.ResolveErrorResponse(w, err)
 		return
 	}
-	path, cheapestPrice, err := rc.pfSrvc.FindCheapestPath(r.Context(), beginID, endID)
+	path, cheapestPrice, err := rc.pfSrvc.FindCheapestPath(r.Context(), int64(beginID), int64(endID))
 	if err != nil {
 		handler.ResolveErrorResponse(w, err)
 		return

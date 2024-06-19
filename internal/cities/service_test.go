@@ -9,13 +9,13 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"gitlab.strale.io/go-travel/internal/cities"
-	"gitlab.strale.io/go-travel/internal/cities/repository"
 	"gitlab.strale.io/go-travel/internal/cities/testutils"
 	"gitlab.strale.io/go-travel/internal/database"
+	"gitlab.strale.io/go-travel/internal/utils"
 )
 
 type cityService interface {
-	ListCities(ctx context.Context, offset, limit int) ([]database.City, error)
+	ListCities(ctx context.Context, pagination utils.Pagination) ([]database.City, error)
 	FindByID(ctx context.Context, id int64) (database.City, error)
 	SaveNewCity(ctx context.Context, name string) (database.City, error)
 	UpdateCity(ctx context.Context, id int64, name string) error
@@ -41,9 +41,9 @@ func setUp() *testKit {
 func TestListCities_Success(t *testing.T) {
 	kit := setUp()
 	ctx := context.Background()
-	kit.cityRepo.FindFn = func(fi repository.FindInput) ([]database.City, error) {
-		assert.Equal(t, 10, fi.Limit)
-		assert.Equal(t, 0, fi.Offset)
+	kit.cityRepo.FindFn = func(p utils.Pagination) ([]database.City, error) {
+		assert.Equal(t, 10, p.Limit)
+		assert.Equal(t, 0, p.Offset)
 		return []database.City{
 			{
 				ID: 123,
@@ -51,7 +51,7 @@ func TestListCities_Success(t *testing.T) {
 		}, nil
 	}
 
-	cities, err := kit.service.ListCities(ctx, 0, 10)
+	cities, err := kit.service.ListCities(ctx, utils.PaginationFrom(0, 10))
 
 	assert.NoError(t, err)
 	assert.NotNil(t, cities)
@@ -62,11 +62,11 @@ func TestListCities_Success(t *testing.T) {
 func TestListCities_Fail(t *testing.T) {
 	kit := setUp()
 	ctx := context.Background()
-	kit.cityRepo.FindFn = func(fi repository.FindInput) ([]database.City, error) {
+	kit.cityRepo.FindFn = func(p utils.Pagination) ([]database.City, error) {
 		return nil, errors.New("some error")
 	}
 
-	cities, err := kit.service.ListCities(ctx, 0, 10)
+	cities, err := kit.service.ListCities(ctx, utils.PaginationFrom(0, 10))
 
 	assert.Nil(t, cities)
 	assert.EqualError(t, err, "error listing cities: some error")

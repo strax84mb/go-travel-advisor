@@ -66,21 +66,21 @@ func (cc *commentController) listComments(w http.ResponseWriter, r *http.Request
 		handler.ResolveErrorResponse(w, err)
 		return
 	}
-	handler.RespondFF(w, http.StatusOK, dto.CommentsToDtos(comments))
+	handler.Respond(w, http.StatusOK, dto.CommentsToDtos(comments))
 }
 
 func (cc *commentController) getCommentByID(w http.ResponseWriter, r *http.Request) {
-	id, err := handler.PathAsInt64(r, "id", handler.IntMustBePositive)
+	id, err := handler.Path[handler.Int64](r, "id", handler.IsPositive)
 	if err != nil {
 		handler.ResolveErrorResponse(w, err)
 		return
 	}
-	comment, err := cc.commentSrvc.FindByID(r.Context(), id)
+	comment, err := cc.commentSrvc.FindByID(r.Context(), int64(id))
 	if err != nil {
 		handler.ResolveErrorResponse(w, err)
 		return
 	}
-	handler.RespondFF(w, http.StatusOK, dto.CommentToDto(*comment))
+	handler.Respond(w, http.StatusOK, dto.CommentToDto(*comment))
 }
 
 func (cc *commentController) listCommentsForMe(w http.ResponseWriter, r *http.Request) {
@@ -99,7 +99,7 @@ func (cc *commentController) listCommentsForMe(w http.ResponseWriter, r *http.Re
 		handler.ResolveErrorResponse(w, err)
 		return
 	}
-	handler.RespondFF(w, http.StatusOK, dto.CommentsToDtos(comments))
+	handler.Respond(w, http.StatusOK, dto.CommentsToDtos(comments))
 }
 
 func (cc *commentController) listCommentsForUser(w http.ResponseWriter, r *http.Request) {
@@ -107,7 +107,7 @@ func (cc *commentController) listCommentsForUser(w http.ResponseWriter, r *http.
 	if !ok {
 		return
 	}
-	userID, err := handler.PathAsInt64(r, "id", handler.IntMustBePositive)
+	userID, err := handler.Path[handler.Int64](r, "id", handler.IsPositive)
 	if err != nil {
 		handler.ResolveErrorResponse(w, err)
 		return
@@ -118,12 +118,12 @@ func (cc *commentController) listCommentsForUser(w http.ResponseWriter, r *http.
 		handler.ResolveErrorResponse(w, handler.NewErrUnauthorizedWithCause("only admins allowed"))
 		return
 	}
-	comments, err := cc.commentSrvc.ListCommentsForUser(ctx, userID, pagination)
+	comments, err := cc.commentSrvc.ListCommentsForUser(ctx, int64(userID), pagination)
 	if err != nil {
 		handler.ResolveErrorResponse(w, err)
 		return
 	}
-	handler.RespondFF(w, http.StatusOK, dto.CommentsToDtos(comments))
+	handler.Respond(w, http.StatusOK, dto.CommentsToDtos(comments))
 }
 
 func (cc *commentController) listCommentsForCity(w http.ResponseWriter, r *http.Request) {
@@ -131,17 +131,17 @@ func (cc *commentController) listCommentsForCity(w http.ResponseWriter, r *http.
 	if !ok {
 		return
 	}
-	cityID, err := handler.PathAsInt64(r, "id", handler.IntMustBePositive)
+	cityID, err := handler.Path[handler.Int64](r, "id", handler.IsPositive)
 	if err != nil {
 		handler.ResolveErrorResponse(w, err)
 		return
 	}
-	comments, err := cc.commentSrvc.ListCommentsForCity(r.Context(), cityID, pagination)
+	comments, err := cc.commentSrvc.ListCommentsForCity(r.Context(), int64(cityID), pagination)
 	if err != nil {
 		handler.ResolveErrorResponse(w, err)
 		return
 	}
-	handler.RespondFF(w, http.StatusOK, dto.CommentsToDtos(comments))
+	handler.Respond(w, http.StatusOK, dto.CommentsToDtos(comments))
 }
 
 func (cc *commentController) saveNewComment(w http.ResponseWriter, r *http.Request) {
@@ -152,7 +152,7 @@ func (cc *commentController) saveNewComment(w http.ResponseWriter, r *http.Reque
 		return
 	}
 	var payload dto.SaveCommentDto
-	err := handler.GetBodyFF(r, &payload)
+	err := handler.GetBody(r, &payload)
 	if err != nil {
 		handler.ResolveErrorResponse(w, err)
 		return
@@ -166,7 +166,7 @@ func (cc *commentController) saveNewComment(w http.ResponseWriter, r *http.Reque
 		handler.ResolveErrorResponse(w, err)
 		return
 	}
-	handler.RespondFF(w, http.StatusCreated, dto.CommentToDto(*comment))
+	handler.Respond(w, http.StatusCreated, dto.CommentToDto(*comment))
 }
 
 func (cc *commentController) updateComment(w http.ResponseWriter, r *http.Request) {
@@ -176,18 +176,18 @@ func (cc *commentController) updateComment(w http.ResponseWriter, r *http.Reques
 		handler.ResolveErrorResponse(w, handler.NewErrUnauthorizedWithCause("must be logged in"))
 		return
 	}
-	id, err := handler.PathAsInt64(r, "id", handler.IntMustBePositive)
+	id, err := handler.Path[handler.Int64](r, "id", handler.IsPositive)
 	if err != nil {
 		handler.ResolveErrorResponse(w, err)
 		return
 	}
 	var payload dto.UpdateCommentDto
-	err = handler.GetBodyFF(r, &payload)
+	err = handler.GetBody(r, &payload)
 	if err != nil {
 		handler.ResolveErrorResponse(w, err)
 		return
 	}
-	err = cc.commentSrvc.UpdateText(r.Context(), id, userID, payload.Text)
+	err = cc.commentSrvc.UpdateText(r.Context(), int64(id), userID, payload.Text)
 	if err != nil {
 		handler.ResolveErrorResponse(w, err)
 		return
@@ -202,12 +202,12 @@ func (cc *commentController) deleteComment(w http.ResponseWriter, r *http.Reques
 		handler.ResolveErrorResponse(w, handler.NewErrUnauthorizedWithCause("must be logged in"))
 		return
 	}
-	id, err := handler.PathAsInt64(r, "id", handler.IntMustBePositive)
+	id, err := handler.Path[handler.Int64](r, "id", handler.IsPositive)
 	if err != nil {
 		handler.ResolveErrorResponse(w, err)
 		return
 	}
-	err = cc.commentSrvc.DeleteByID(ctx, id, userID, false)
+	err = cc.commentSrvc.DeleteByID(ctx, int64(id), userID, false)
 	if err != nil {
 		handler.ResolveErrorResponse(w, err)
 		return
@@ -222,12 +222,12 @@ func (cc *commentController) forceDeleteComment(w http.ResponseWriter, r *http.R
 		handler.ResolveErrorResponse(w, handler.NewErrUnauthorizedWithCause("must be logged in"))
 		return
 	}
-	id, err := handler.PathAsInt64(r, "id", handler.IntMustBePositive)
+	id, err := handler.Path[handler.Int64](r, "id", handler.IsPositive)
 	if err != nil {
 		handler.ResolveErrorResponse(w, err)
 		return
 	}
-	err = cc.commentSrvc.DeleteByID(ctx, id, 0, true)
+	err = cc.commentSrvc.DeleteByID(ctx, int64(id), 0, true)
 	if err != nil {
 		handler.ResolveErrorResponse(w, err)
 		return

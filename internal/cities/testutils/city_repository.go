@@ -1,8 +1,8 @@
 package testutils
 
 import (
-	"gitlab.strale.io/go-travel/internal/cities/repository"
 	"gitlab.strale.io/go-travel/internal/database"
+	"gitlab.strale.io/go-travel/internal/utils"
 )
 
 type MockRegistry struct {
@@ -31,7 +31,7 @@ func (mr *MockRegistry) WithArgs(function string, time int, args ...interface{})
 }
 
 type CityRepositoryMock struct {
-	FindFn       func(repository.FindInput) ([]database.City, error)
+	FindFn       func(utils.Pagination) ([]database.City, error)
 	FindByIDsFn  func([]int64) ([]database.City, error)
 	FindByIDFn   func(int64, bool) (database.City, error)
 	FindByNameFn func(string, bool) (database.City, error)
@@ -40,8 +40,8 @@ type CityRepositoryMock struct {
 	DeleteFn     func(int64) error
 }
 
-func (cr *CityRepositoryMock) Find(input repository.FindInput) ([]database.City, error) {
-	return cr.FindFn(input)
+func (cr *CityRepositoryMock) Find(pagination utils.Pagination) ([]database.City, error) {
+	return cr.FindFn(pagination)
 }
 
 func (cr *CityRepositoryMock) FindByIDs(ids []int64) ([]database.City, error) {
