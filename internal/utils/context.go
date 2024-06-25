@@ -10,14 +10,39 @@ type ctxKey int
 
 var ctxContentKey ctxKey
 
-func WithValue(ctx context.Context, key string, value interface{}) context.Context {
+func addValuesToContext(
+	ctx context.Context,
+	addValues func(map[string]interface{}) map[string]interface{},
+) context.Context {
 	var values map[string]interface{}
 	values, ok := ctx.Value(ctxContentKey).(map[string]interface{})
 	if !ok {
 		values = make(map[string]interface{})
 	}
-	values[key] = value
+	values = addValues(values)
 	return context.WithValue(ctx, ctxContentKey, values)
+}
+
+func WithValue(ctx context.Context, key string, value interface{}) context.Context {
+	return addValuesToContext(
+		ctx,
+		func(vals map[string]interface{}) map[string]interface{} {
+			vals[key] = value
+			return vals
+		},
+	)
+}
+
+func WithValues(ctx context.Context, newValues map[string]interface{}) context.Context {
+	return addValuesToContext(
+		ctx,
+		func(values map[string]interface{}) map[string]interface{} {
+			for key, value := range newValues {
+				values[key] = value
+			}
+			return values
+		},
+	)
 }
 
 func HasRole(roles []string, requestedRole string) bool {

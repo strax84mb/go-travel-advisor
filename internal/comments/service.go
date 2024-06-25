@@ -51,12 +51,10 @@ func NewCommentService(
 func (cs *commentService) doListComments(
 	ctx context.Context,
 	searchFunc func() ([]database.Comment, error),
-	errorLogFields map[string]interface{},
 ) ([]database.Comment, error) {
 	list, err := searchFunc()
 	if err != nil {
 		logrus.WithContext(ctx).WithError(err).
-			WithFields(errorLogFields).
 			Error("could not list comments")
 		return nil, fmt.Errorf("could not list comments: %w", err)
 	}
@@ -65,14 +63,17 @@ func (cs *commentService) doListComments(
 
 // List all comments with pagination support
 func (cs *commentService) ListComments(ctx context.Context, pagination utils.Pagination) ([]database.Comment, error) {
+	ctx = utils.WithValues(
+		ctx,
+		map[string]interface{}{
+			"offset": pagination.Offset,
+			"limit":  pagination.Limit,
+		},
+	)
 	return cs.doListComments(
 		ctx,
 		func() ([]database.Comment, error) {
 			return cs.commentRepo.ListComments(pagination)
-		},
-		map[string]interface{}{
-			"offset": pagination.Offset,
-			"limit":  pagination.Limit,
 		},
 	)
 }
@@ -99,14 +100,16 @@ func (cs *commentService) ListCommentsForCity(
 	pagination utils.Pagination,
 ) ([]database.Comment, error) {
 	return cs.doListComments(
-		ctx,
+		utils.WithValues(
+			ctx,
+			map[string]interface{}{
+				"cityId": cityID,
+				"offset": pagination.Offset,
+				"limit":  pagination.Limit,
+			},
+		),
 		func() ([]database.Comment, error) {
 			return cs.commentRepo.ListCommentsForCity(cityID, pagination)
-		},
-		map[string]interface{}{
-			"cityId": cityID,
-			"offset": pagination.Offset,
-			"limit":  pagination.Limit,
 		},
 	)
 }
@@ -117,14 +120,16 @@ func (cs *commentService) ListCommentsForUser(
 	pagination utils.Pagination,
 ) ([]database.Comment, error) {
 	return cs.doListComments(
-		ctx,
+		utils.WithValues(
+			ctx,
+			map[string]interface{}{
+				"userId": userID,
+				"offset": pagination.Offset,
+				"limit":  pagination.Limit,
+			},
+		),
 		func() ([]database.Comment, error) {
 			return cs.commentRepo.ListCommentsForUser(userID, pagination)
-		},
-		map[string]interface{}{
-			"userId": userID,
-			"offset": pagination.Offset,
-			"limit":  pagination.Limit,
 		},
 	)
 }
