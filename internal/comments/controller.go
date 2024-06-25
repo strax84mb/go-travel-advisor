@@ -70,7 +70,7 @@ func (cc *commentController) listComments(w http.ResponseWriter, r *http.Request
 }
 
 func (cc *commentController) getCommentByID(w http.ResponseWriter, r *http.Request) {
-	id, err := handler.Path(r, handler.Int64FromString, "id", handler.IsPositive)
+	id, err := handler.Path(r, handler.Int64, "id", handler.IsPositive)
 	if err != nil {
 		handler.ResolveErrorResponse(w, err)
 		return
@@ -107,7 +107,7 @@ func (cc *commentController) listCommentsForUser(w http.ResponseWriter, r *http.
 	if !ok {
 		return
 	}
-	userID, err := handler.Path(r, handler.Int64FromString, "id", handler.IsPositive)
+	userID, err := handler.Path(r, handler.Int64, "id", handler.IsPositive)
 	if err != nil {
 		handler.ResolveErrorResponse(w, err)
 		return
@@ -131,7 +131,7 @@ func (cc *commentController) listCommentsForCity(w http.ResponseWriter, r *http.
 	if !ok {
 		return
 	}
-	cityID, err := handler.Path(r, handler.Int64FromString, "id", handler.IsPositive)
+	cityID, err := handler.Path(r, handler.Int64, "id", handler.IsPositive)
 	if err != nil {
 		handler.ResolveErrorResponse(w, err)
 		return
@@ -176,7 +176,7 @@ func (cc *commentController) updateComment(w http.ResponseWriter, r *http.Reques
 		handler.ResolveErrorResponse(w, handler.NewErrUnauthorizedWithCause("must be logged in"))
 		return
 	}
-	id, err := handler.Path(r, handler.Int64FromString, "id", handler.IsPositive)
+	id, err := handler.Path(r, handler.Int64, "id", handler.IsPositive)
 	if err != nil {
 		handler.ResolveErrorResponse(w, err)
 		return
@@ -202,7 +202,7 @@ func (cc *commentController) deleteComment(w http.ResponseWriter, r *http.Reques
 		handler.ResolveErrorResponse(w, handler.NewErrUnauthorizedWithCause("must be logged in"))
 		return
 	}
-	id, err := handler.Path(r, handler.Int64FromString, "id", handler.IsPositive)
+	id, err := handler.Path(r, handler.Int64, "id", handler.IsPositive)
 	if err != nil {
 		handler.ResolveErrorResponse(w, err)
 		return
@@ -222,7 +222,7 @@ func (cc *commentController) forceDeleteComment(w http.ResponseWriter, r *http.R
 		handler.ResolveErrorResponse(w, handler.NewErrUnauthorizedWithCause("must be logged in"))
 		return
 	}
-	id, err := handler.Path(r, handler.Int64FromString, "id", handler.IsPositive)
+	id, err := handler.Path(r, handler.Int64, "id", handler.IsPositive)
 	if err != nil {
 		handler.ResolveErrorResponse(w, err)
 		return

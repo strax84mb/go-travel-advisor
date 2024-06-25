@@ -57,7 +57,7 @@ func (cc *cityController) ListAllCities(w http.ResponseWriter, r *http.Request) 
 }
 
 func (cc *cityController) GetCityByID(w http.ResponseWriter, r *http.Request) {
-	id, err := handler.Path(r, handler.Int64FromString, "id", handler.IsPositive)
+	id, err := handler.Path(r, handler.Int64, "id", handler.IsPositive)
 	if err != nil {
 		handler.ResolveErrorResponse(w, err)
 		return
@@ -87,7 +87,7 @@ func (cc *cityController) SaveNewCity(w http.ResponseWriter, r *http.Request) {
 }
 
 func (cc *cityController) UpdateCity(w http.ResponseWriter, r *http.Request) {
-	id, err := handler.Path(r, handler.Int64FromString, "id", handler.IsPositive)
+	id, err := handler.Path(r, handler.Int64, "id", handler.IsPositive)
 	if err != nil {
 		handler.ResolveErrorResponse(w, err)
 		return
@@ -108,7 +108,7 @@ func (cc *cityController) UpdateCity(w http.ResponseWriter, r *http.Request) {
 }
 
 func (cc *cityController) DeleteCity(w http.ResponseWriter, r *http.Request) {
-	id, err := handler.Path(r, handler.Int64FromString, "id", handler.IsPositive)
+	id, err := handler.Path(r, handler.Int64, "id", handler.IsPositive)
 	if err != nil {
 		handler.ResolveErrorResponse(w, err)
 		return

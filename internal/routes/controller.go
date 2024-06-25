@@ -96,7 +96,7 @@ func getDirection(r *http.Request) Direction {
 }
 
 func (rc *routeController) listRoutesForCity(w http.ResponseWriter, r *http.Request) {
-	cityID, err := handler.Path(r, handler.Int64FromString, "id", handler.IsPositive)
+	cityID, err := handler.Path(r, handler.Int64, "id", handler.IsPositive)
 	if err != nil {
 		handler.ResolveErrorResponse(w, err)
 		return
@@ -112,7 +112,7 @@ func (rc *routeController) listRoutesForCity(w http.ResponseWriter, r *http.Requ
 }
 
 func (rc *routeController) listRoutesForAirport(w http.ResponseWriter, r *http.Request) {
-	airportID, err := handler.Path(r, handler.Int64FromString, "id", handler.IsPositive)
+	airportID, err := handler.Path(r, handler.Int64, "id", handler.IsPositive)
 	if err != nil {
 		handler.ResolveErrorResponse(w, err)
 		return
@@ -128,7 +128,7 @@ func (rc *routeController) listRoutesForAirport(w http.ResponseWriter, r *http.R
 }
 
 func (rc *routeController) findByID(w http.ResponseWriter, r *http.Request) {
-	id, err := handler.Path(r, handler.Int64FromString, "id", handler.IsPositive)
+	id, err := handler.Path(r, handler.Int64, "id", handler.IsPositive)
 	if err != nil {
 		handler.ResolveErrorResponse(w, err)
 		return
@@ -161,7 +161,7 @@ func (rc *routeController) saveNewRoute(w http.ResponseWriter, r *http.Request) 
 }
 
 func (rc *routeController) update(w http.ResponseWriter, r *http.Request) {
-	id, err := handler.Path(r, handler.Int64FromString, "id", handler.IsPositive)
+	id, err := handler.Path(r, handler.Int64, "id", handler.IsPositive)
 	if err != nil {
 		handler.ResolveErrorResponse(w, err)
 		return
@@ -181,7 +181,7 @@ func (rc *routeController) update(w http.ResponseWriter, r *http.Request) {
 }
 
 func (rc *routeController) delete(w http.ResponseWriter, r *http.Request) {
-	id, err := handler.Path(r, handler.Int64FromString, "id", handler.IsPositive)
+	id, err := handler.Path(r, handler.Int64, "id", handler.IsPositive)
 	if err != nil {
 		handler.ResolveErrorResponse(w, err)
 		return
@@ -195,12 +195,12 @@ func (rc *routeController) delete(w http.ResponseWriter, r *http.Request) {
 }
 
 func (rc *routeController) cheapestPath(w http.ResponseWriter, r *http.Request) {
-	beginID, err := handler.Query(r, handler.Int64FromString, "begin", true, 0, handler.IsPositive)
+	beginID, err := handler.Query(r, handler.Int64, "begin", true, 0, handler.IsPositive)
 	if err != nil {
 		handler.ResolveErrorResponse(w, err)
 		return
 	}
-	endID, err := handler.Query(r, handler.Int64FromString, "end", true, 0, handler.IsPositive)
+	endID, err := handler.Query(r, handler.Int64, "end", true, 0, handler.IsPositive)
 	if err != nil {
 		handler.ResolveErrorResponse(w, err)
 		return

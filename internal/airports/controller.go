@@ -73,7 +73,7 @@ func (ac *airportController) ListAllAirports(w http.ResponseWriter, r *http.Requ
 }
 
 func (ac *airportController) ListAirportsInCity(w http.ResponseWriter, r *http.Request) {
-	cityID, err := handler.Path(r, handler.Int64FromString, "id", handler.IsPositive)
+	cityID, err := handler.Path(r, handler.Int64, "id", handler.IsPositive)
 	if err != nil {
 		handler.ResolveErrorResponse(w, err)
 		return
@@ -88,7 +88,7 @@ func (ac *airportController) ListAirportsInCity(w http.ResponseWriter, r *http.R
 }
 
 func (ac *airportController) GetAirportByID(w http.ResponseWriter, r *http.Request) {
-	id, err := handler.Path(r, handler.Int64FromString, "id", handler.IsPositive)
+	id, err := handler.Path(r, handler.Int64, "id", handler.IsPositive)
 	if err != nil {
 		handler.ResolveErrorResponse(w, err)
 		return
@@ -120,7 +120,7 @@ func (ac *airportController) SaveNewAirport(w http.ResponseWriter, r *http.Reque
 }
 
 func (ac *airportController) UpdateAirport(w http.ResponseWriter, r *http.Request) {
-	id, err := handler.Path(r, handler.Int64FromString, "id", handler.IsPositive)
+	id, err := handler.Path(r, handler.Int64, "id", handler.IsPositive)
 	if err != nil {
 		handler.ResolveErrorResponse(w, err)
 		return
@@ -144,7 +144,7 @@ func (ac *airportController) UpdateAirport(w http.ResponseWriter, r *http.Reques
 }
 
 func (ac *airportController) DeleteAirport(w http.ResponseWriter, r *http.Request) {
-	id, err := handler.Path(r, handler.Int64FromString, "id", handler.IsPositive)
+	id, err := handler.Path(r, handler.Int64, "id", handler.IsPositive)
 	if err != nil {
 		handler.ResolveErrorResponse(w, err)
 		return

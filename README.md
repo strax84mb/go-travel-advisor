@@ -23,7 +23,7 @@ This will be needed in order to be able to compile test files.
 
 ## Controllers
 
-Router used is `Gorilla`. 
+Router used is `Gorilla`.
 
 ### DTOs using FFJSON
 
@@ -76,11 +76,11 @@ func Query[
 ```
 So, because parser for int64 is used, it is implied that entire flow should be used to return parsed int64. It may seem complicated, but everything is connected. Only first generic parameter needs to be defined/implied. All others can be derived from it. When needing to actually use this, it can be done like so:
 ```Go
-beginID, err := handler.Query(r, handler.Int64FromString, "begin", true, 0, handler.IsPositive)
+beginID, err := handler.Query(r, handler.Int64, "begin", true, 0, handler.IsPositive)
 ```
-`Int64FromString` is important in this as it is defined like this:
+`Int64` is important in this as it is defined like this:
 ```Go
-func Int64FromString(val string) (int64, error) {
+func Int64(val string) (int64, error) {
 	return strconv.ParseInt(val, 10, 64)
 }
 ```
@@ -120,7 +120,7 @@ It is recommended to write destructors for large and complicated structures. Whe
 This allows for the package code to be tested as a black box. Only exposed code can be accessed. This approach is a problem if interfaces used are not exposed.
 
 ### Test files in same package as developed code
-This allows for testing of code that is not exposed. In order to avoid having test code ending up in production, conditional build tag must be used at the start of the file. 
+This allows for testing of code that is not exposed. In order to avoid having test code ending up in production, conditional build tag must be used at the start of the file.
 ```Go
 //go:build test
 ```

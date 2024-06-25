@@ -24,15 +24,15 @@ type PrimitiveValue[
 	*T
 }
 
-func Int64FromString(val string) (int64, error) {
+func Int64(val string) (int64, error) {
 	return strconv.ParseInt(val, 10, 64)
 }
 
-func IntFromString(val string) (int, error) {
+func Int(val string) (int, error) {
 	return strconv.Atoi(val)
 }
 
-func StringFromString(val string) (string, error) {
+func String(val string) (string, error) {
 	return val, nil
 }
 

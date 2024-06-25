@@ -11,7 +11,7 @@ import (
 
 func TestMyCode(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "/temp?id=123", nil)
-	i, err := handler.Query(req, handler.Int64FromString, "id", true, 1, handler.IsPositive)
+	i, err := handler.Query(req, handler.Int64, "id", true, 1, handler.IsPositive)
 	assert.NoError(t, err)
 	assert.Equal(t, int64(123), i.Val())
 }
