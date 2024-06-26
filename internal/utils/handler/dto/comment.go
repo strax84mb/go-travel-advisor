@@ -59,11 +59,7 @@ func CommentToDto(comment database.Comment) *CommentDto {
 }
 
 func CommentsToDtos(comments []database.Comment) *CommentsDto {
-	dtos := CommentsDto{
-		Items: make([]CommentDto, len(comments)),
+	return &CommentsDto{
+		Items: ConvertArray(comments, CommentToDto),
 	}
-	for i, comment := range comments {
-		dtos.Items[i] = *CommentToDto(comment)
-	}
-	return &dtos
 }

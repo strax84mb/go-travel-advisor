@@ -20,29 +20,23 @@ type CityAirportDto struct {
 }
 
 func CityToDto(city database.City) *CityDto {
-	var airports []CityAirportDto
-	if city.Airports != nil {
-		airports = make([]CityAirportDto, len(city.Airports))
-		for i, airport := range city.Airports {
-			airports[i] = CityAirportDto{
-				ID:   airport.ID,
-				Name: airport.Name,
-			}
-		}
-	}
 	return &CityDto{
-		ID:       city.ID,
-		Name:     city.Name,
-		Airports: airports,
+		ID:   city.ID,
+		Name: city.Name,
+		Airports: ConvertArray(
+			city.Airports,
+			func(airport database.Airport) *CityAirportDto {
+				return &CityAirportDto{
+					ID:   airport.ID,
+					Name: airport.Name,
+				}
+			},
+		),
 	}
 }
 
 func CitiesToDtos(cities []database.City) *CityDtos {
-	dtos := CityDtos{
-		Items: make([]CityDto, len(cities)),
+	return &CityDtos{
+		Items: ConvertArray(cities, CityToDto),
 	}
-	for i, c := range cities {
-		dtos.Items[i] = *CityToDto(c)
-	}
-	return &dtos
 }

@@ -99,7 +99,6 @@ func (cp *CheapestPath) Encode() ([]byte, error) {
 			}
 		}
 	}
-	//TODO
 	_, err = buf.WriteString(fmt.Sprintf(`],"fullPrice":%d}`, cp.FullPrice))
 	if err != nil {
 		return nil, err

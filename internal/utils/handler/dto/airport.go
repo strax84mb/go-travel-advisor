@@ -22,11 +22,7 @@ func AirportToDto(airport database.Airport) *AirportDto {
 }
 
 func AirportsToDtos(airports []database.Airport) *AirportDtos {
-	list := AirportDtos{
-		Items: make([]AirportDto, len(airports)),
+	return &AirportDtos{
+		Items: ConvertArray(airports, AirportToDto),
 	}
-	for i, a := range airports {
-		list.Items[i] = *AirportToDto(a)
-	}
-	return &list
 }

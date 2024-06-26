@@ -41,11 +41,7 @@ func RouteToDto(route database.Route) *RouteDto {
 }
 
 func RoutesToDtos(routes []database.Route) *RoutesDto {
-	list := RoutesDto{
-		Items: make([]RouteDto, len(routes)),
+	return &RoutesDto{
+		Items: ConvertArray(routes, RouteToDto),
 	}
-	for i, route := range routes {
-		list.Items[i] = *RouteToDto(route)
-	}
-	return &list
 }
