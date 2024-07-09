@@ -18,6 +18,10 @@ type ServerConfig struct {
 	Port    int16  `yaml:"port"`
 }
 
+type ClientConfig struct {
+	Origin string `yaml:"origin"`
+}
+
 type SecurityConfig struct {
 	RSAKey string `yaml:"rsaKey"`
 }
@@ -25,6 +29,7 @@ type SecurityConfig struct {
 type Config struct {
 	DB       DbConfig       `yaml:"db"`
 	Server   ServerConfig   `yaml:"server"`
+	Client   ClientConfig   `yaml:"client"`
 	Security SecurityConfig `yaml:"security"`
 }
 

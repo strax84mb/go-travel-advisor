@@ -2,7 +2,6 @@ package users
 
 import (
 	"context"
-	"crypto/rsa"
 	"fmt"
 	"net/http"
 	"strings"
@@ -12,14 +11,15 @@ import (
 	"github.com/sirupsen/logrus"
 	"gitlab.strale.io/go-travel/internal/database"
 	"gitlab.strale.io/go-travel/internal/utils/handler"
+	"golang.org/x/crypto/ssh"
 )
 
 type securityService struct {
-	key *rsa.PrivateKey
+	key interface{}
 }
 
 func NewSecurityService(key string) (*securityService, error) {
-	rsaKey, err := jwt.ParseRSAPrivateKeyFromPEM([]byte(key))
+	rsaKey, err := ssh.ParseRawPrivateKey([]byte(key))
 	if err != nil {
 		return nil, err
 	}

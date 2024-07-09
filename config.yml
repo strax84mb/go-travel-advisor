@@ -5,6 +5,9 @@ db:
 server:
   address: 127.0.0.1
   port: 8080
+client:
+  origin: "*"
+  #origin: http://localhost:3000/
 security:
   rsaKey: |
     -----BEGIN OPENSSH PRIVATE KEY-----

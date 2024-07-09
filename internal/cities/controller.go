@@ -32,14 +32,16 @@ func NewCityController(citySrvc iCityService) *cityController {
 	}
 }
 
-func (cc *cityController) RegisterHandlers(r *mux.Router) {
+func (cc *cityController) RegisterHandlers(r *mux.Router, c *handler.Cors) {
 	r.Path("").Methods(http.MethodGet).HandlerFunc(cc.ListAllCities)
 	r.Path("").Methods(http.MethodPost).HandlerFunc(cc.SaveNewCity)
 	r.Path("").Methods(http.MethodPatch).HandlerFunc(cc.ImportCities)
+	c.Options(r, "", http.MethodGet, http.MethodPost, http.MethodPatch)
 
 	r.Path("/{id}").Methods(http.MethodGet).HandlerFunc(cc.GetCityByID)
 	r.Path("/{id}").Methods(http.MethodPut).HandlerFunc(cc.UpdateCity)
 	r.Path("/{id}").Methods(http.MethodDelete).HandlerFunc(cc.DeleteCity)
+	c.Options(r, "/{id}", http.MethodGet, http.MethodPut, http.MethodDelete)
 }
 
 func (cc *cityController) ListAllCities(w http.ResponseWriter, r *http.Request) {

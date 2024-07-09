@@ -23,6 +23,7 @@ import (
 	"gitlab.strale.io/go-travel/internal/users"
 	userRepo "gitlab.strale.io/go-travel/internal/users/repository"
 	"gitlab.strale.io/go-travel/internal/utils"
+	"gitlab.strale.io/go-travel/internal/utils/handler"
 )
 
 // Hello a handler for /hello/:name endpoint
@@ -81,6 +82,8 @@ func main() {
 
 	jwtMiddleware := middleware.NewVerifyJWTMiddleware(securityService)
 
+	corsHandler := handler.NewCors(conf.Client.Origin)
+
 	r := mux.NewRouter()
 	r.Use(middleware.RequestIDMiddleware)
 	r.Use(jwtMiddleware.Middleware)
@@ -92,7 +95,7 @@ func main() {
 	routePrefixed := v1Router.PathPrefix("/routes").Subrouter()
 	airportPrefixed := v1Router.PathPrefix("/airports").Subrouter()
 
-	cityController.RegisterHandlers(cityPrefixed)
+	cityController.RegisterHandlers(cityPrefixed, corsHandler)
 	airportController.RegisterHandlers(airportPrefixed, cityPrefixed)
 	commentsController.RegisterHandlers(comments.RegisterHandlersInput{
 		V1Prefixed:       v1Router,
