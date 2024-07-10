@@ -25,11 +25,13 @@ type airportService interface {
 
 type airportController struct {
 	airportSrvc airportService
+	r           *handler.Responder
 }
 
-func NewAirportController(airportSrvc airportService) *airportController {
+func NewAirportController(airportSrvc airportService, r *handler.Responder) *airportController {
 	return &airportController{
 		airportSrvc: airportSrvc,
+		r:           r,
 	}
 }
 
@@ -50,16 +52,16 @@ func (ac *airportController) listAirports(
 	r *http.Request,
 	getter func(pagination utils.Pagination) ([]database.Airport, error),
 ) {
-	pagination, ok := utils.PaginationFromRequest(w, r)
+	pagination, ok := utils.PaginationFromRequest(w, r, ac.r)
 	if !ok {
 		return
 	}
 	airports, err := getter(pagination)
 	if err != nil {
-		handler.ResolveErrorResponse(w, err)
+		ac.r.ResolveErrorResponse(w, err)
 		return
 	}
-	handler.Respond(w, http.StatusOK, dto.AirportsToDtos(airports))
+	ac.r.Respond(w, http.StatusOK, dto.AirportsToDtos(airports))
 }
 
 func (ac *airportController) ListAllAirports(w http.ResponseWriter, r *http.Request) {
@@ -75,7 +77,7 @@ func (ac *airportController) ListAllAirports(w http.ResponseWriter, r *http.Requ
 func (ac *airportController) ListAirportsInCity(w http.ResponseWriter, r *http.Request) {
 	cityID, err := handler.Path(r, handler.Int64, "id", handler.IsPositive)
 	if err != nil {
-		handler.ResolveErrorResponse(w, err)
+		ac.r.ResolveErrorResponse(w, err)
 		return
 	}
 	ac.listAirports(
@@ -90,22 +92,22 @@ func (ac *airportController) ListAirportsInCity(w http.ResponseWriter, r *http.R
 func (ac *airportController) GetAirportByID(w http.ResponseWriter, r *http.Request) {
 	id, err := handler.Path(r, handler.Int64, "id", handler.IsPositive)
 	if err != nil {
-		handler.ResolveErrorResponse(w, err)
+		ac.r.ResolveErrorResponse(w, err)
 		return
 	}
 	airport, err := ac.airportSrvc.FindByID(r.Context(), id.Val())
 	if err != nil {
-		handler.ResolveErrorResponse(w, err)
+		ac.r.ResolveErrorResponse(w, err)
 		return
 	}
-	handler.Respond(w, http.StatusOK, dto.AirportToDto(airport))
+	ac.r.Respond(w, http.StatusOK, dto.AirportToDto(airport))
 }
 
 func (ac *airportController) SaveNewAirport(w http.ResponseWriter, r *http.Request) {
 	var payload dto.SaveAirportDto
 	err := handler.GetBody(r, &payload)
 	if err != nil {
-		handler.ResolveErrorResponse(w, err)
+		ac.r.ResolveErrorResponse(w, err)
 		return
 	}
 	airport, err := ac.airportSrvc.SaveNewAirport(r.Context(), database.Airport{
@@ -113,22 +115,22 @@ func (ac *airportController) SaveNewAirport(w http.ResponseWriter, r *http.Reque
 		CityID: payload.CityID,
 	})
 	if err != nil {
-		handler.ResolveErrorResponse(w, err)
+		ac.r.ResolveErrorResponse(w, err)
 		return
 	}
-	handler.Respond(w, http.StatusCreated, dto.AirportToDto(airport))
+	ac.r.Respond(w, http.StatusCreated, dto.AirportToDto(airport))
 }
 
 func (ac *airportController) UpdateAirport(w http.ResponseWriter, r *http.Request) {
 	id, err := handler.Path(r, handler.Int64, "id", handler.IsPositive)
 	if err != nil {
-		handler.ResolveErrorResponse(w, err)
+		ac.r.ResolveErrorResponse(w, err)
 		return
 	}
 	var payload dto.SaveAirportDto
 	err = handler.GetBody(r, &payload)
 	if err != nil {
-		handler.ResolveErrorResponse(w, err)
+		ac.r.ResolveErrorResponse(w, err)
 		return
 	}
 	err = ac.airportSrvc.UpdateAirport(r.Context(), database.Airport{
@@ -137,30 +139,30 @@ func (ac *airportController) UpdateAirport(w http.ResponseWriter, r *http.Reques
 		CityID: payload.CityID,
 	})
 	if err != nil {
-		handler.ResolveErrorResponse(w, err)
+		ac.r.ResolveErrorResponse(w, err)
 		return
 	}
-	handler.Respond(w, http.StatusOK, nil)
+	ac.r.Respond(w, http.StatusOK, nil)
 }
 
 func (ac *airportController) DeleteAirport(w http.ResponseWriter, r *http.Request) {
 	id, err := handler.Path(r, handler.Int64, "id", handler.IsPositive)
 	if err != nil {
-		handler.ResolveErrorResponse(w, err)
+		ac.r.ResolveErrorResponse(w, err)
 		return
 	}
 	err = ac.airportSrvc.DeleteAirport(r.Context(), id.Val())
 	if err != nil {
-		handler.ResolveErrorResponse(w, err)
+		ac.r.ResolveErrorResponse(w, err)
 		return
 	}
-	handler.Respond(w, http.StatusOK, nil)
+	ac.r.Respond(w, http.StatusOK, nil)
 }
 
 func (ac *airportController) ImportAirports(w http.ResponseWriter, r *http.Request) {
 	file, _, err := r.FormFile("file")
 	if err != nil {
-		handler.ResolveErrorResponse(w, handler.NewErrBadRequest(
+		ac.r.ResolveErrorResponse(w, handler.NewErrBadRequest(
 			err.Error(),
 		))
 		return
@@ -168,11 +170,11 @@ func (ac *airportController) ImportAirports(w http.ResponseWriter, r *http.Reque
 	defer file.Close()
 	bytes, err := io.ReadAll(file)
 	if err != nil {
-		handler.ResolveErrorResponse(w, handler.NewErrBadRequest(
+		ac.r.ResolveErrorResponse(w, handler.NewErrBadRequest(
 			fmt.Sprintf("could not read contents of uploaded file: %s", err.Error()),
 		))
 		return
 	}
 	go ac.airportSrvc.ImportAirports(context.Background(), bytes)
-	handler.Respond(w, http.StatusOK, nil)
+	ac.r.Respond(w, http.StatusOK, nil)
 }

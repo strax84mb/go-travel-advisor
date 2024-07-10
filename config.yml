@@ -6,7 +6,7 @@ server:
   address: 127.0.0.1
   port: 8080
 client:
-  origin: http://localhost:3000
+  origin: http://traveladvisor.local:3000
 security:
   rsaKey: |
     -----BEGIN OPENSSH PRIVATE KEY-----

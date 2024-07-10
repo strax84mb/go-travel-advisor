@@ -24,11 +24,13 @@ type iCityService interface {
 
 type cityController struct {
 	citySrvc iCityService
+	r        *handler.Responder
 }
 
-func NewCityController(citySrvc iCityService) *cityController {
+func NewCityController(citySrvc iCityService, r *handler.Responder) *cityController {
 	return &cityController{
 		citySrvc: citySrvc,
+		r:        r,
 	}
 }
 
@@ -45,88 +47,88 @@ func (cc *cityController) RegisterHandlers(r *mux.Router, c *handler.Cors) {
 }
 
 func (cc *cityController) ListAllCities(w http.ResponseWriter, r *http.Request) {
-	pagination, ok := utils.PaginationFromRequest(w, r)
+	pagination, ok := utils.PaginationFromRequest(w, r, cc.r)
 	if !ok {
 		return
 	}
 	ctx := r.Context()
 	cities, err := cc.citySrvc.ListCities(ctx, pagination)
 	if err != nil {
-		handler.ResolveErrorResponse(w, err)
+		cc.r.ResolveErrorResponse(w, err)
 		return
 	}
-	handler.Respond(w, http.StatusOK, dto.CitiesToDtos(cities))
+	cc.r.Respond(w, http.StatusOK, dto.CitiesToDtos(cities))
 }
 
 func (cc *cityController) GetCityByID(w http.ResponseWriter, r *http.Request) {
 	id, err := handler.Path(r, handler.Int64, "id", handler.IsPositive)
 	if err != nil {
-		handler.ResolveErrorResponse(w, err)
+		cc.r.ResolveErrorResponse(w, err)
 		return
 	}
 	ctx := r.Context()
 	city, err := cc.citySrvc.FindByID(ctx, id.Val())
 	if err != nil {
-		handler.ResolveErrorResponse(w, err)
+		cc.r.ResolveErrorResponse(w, err)
 		return
 	}
-	handler.Respond(w, http.StatusOK, dto.CityToDto(city))
+	cc.r.Respond(w, http.StatusOK, dto.CityToDto(city))
 }
 
 func (cc *cityController) SaveNewCity(w http.ResponseWriter, r *http.Request) {
 	var payload dto.SaveCityDto
 	err := handler.GetBody(r, &payload)
 	if err != nil {
-		handler.ResolveErrorResponse(w, err)
+		cc.r.ResolveErrorResponse(w, err)
 		return
 	}
 	city, err := cc.citySrvc.SaveNewCity(r.Context(), payload.Name)
 	if err != nil {
-		handler.ResolveErrorResponse(w, err)
+		cc.r.ResolveErrorResponse(w, err)
 		return
 	}
-	handler.Respond(w, http.StatusCreated, dto.CityToDto(city))
+	cc.r.Respond(w, http.StatusCreated, dto.CityToDto(city))
 }
 
 func (cc *cityController) UpdateCity(w http.ResponseWriter, r *http.Request) {
 	id, err := handler.Path(r, handler.Int64, "id", handler.IsPositive)
 	if err != nil {
-		handler.ResolveErrorResponse(w, err)
+		cc.r.ResolveErrorResponse(w, err)
 		return
 	}
 	var payload dto.SaveCityDto
 	err = handler.GetBody(r, &payload)
 	if err != nil {
-		handler.ResolveErrorResponse(w, err)
+		cc.r.ResolveErrorResponse(w, err)
 		return
 	}
 	ctx := r.Context()
 	err = cc.citySrvc.UpdateCity(ctx, id.Val(), payload.Name)
 	if err != nil {
-		handler.ResolveErrorResponse(w, err)
+		cc.r.ResolveErrorResponse(w, err)
 		return
 	}
-	handler.Respond(w, http.StatusOK, nil)
+	cc.r.Respond(w, http.StatusOK, nil)
 }
 
 func (cc *cityController) DeleteCity(w http.ResponseWriter, r *http.Request) {
 	id, err := handler.Path(r, handler.Int64, "id", handler.IsPositive)
 	if err != nil {
-		handler.ResolveErrorResponse(w, err)
+		cc.r.ResolveErrorResponse(w, err)
 		return
 	}
 	err = cc.citySrvc.DeleteCity(r.Context(), id.Val())
 	if err != nil {
-		handler.ResolveErrorResponse(w, err)
+		cc.r.ResolveErrorResponse(w, err)
 		return
 	}
-	handler.Respond(w, http.StatusOK, nil)
+	cc.r.Respond(w, http.StatusOK, nil)
 }
 
 func (cc *cityController) ImportCities(w http.ResponseWriter, r *http.Request) {
 	file, _, err := r.FormFile("file")
 	if err != nil {
-		handler.ResolveErrorResponse(w, handler.NewErrBadRequest(
+		cc.r.ResolveErrorResponse(w, handler.NewErrBadRequest(
 			err.Error(),
 		))
 		return
@@ -134,11 +136,11 @@ func (cc *cityController) ImportCities(w http.ResponseWriter, r *http.Request) {
 	defer file.Close()
 	bytes, err := io.ReadAll(file)
 	if err != nil {
-		handler.ResolveErrorResponse(w, handler.NewErrBadRequest(
+		cc.r.ResolveErrorResponse(w, handler.NewErrBadRequest(
 			fmt.Sprintf("could not read contents of uploaded file: %s", err.Error()),
 		))
 		return
 	}
 	go cc.citySrvc.ImportCities(context.Background(), bytes)
-	handler.Respond(w, http.StatusOK, nil)
+	cc.r.Respond(w, http.StatusOK, nil)
 }

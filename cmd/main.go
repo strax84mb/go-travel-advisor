@@ -74,13 +74,15 @@ func main() {
 		routeRepository,
 	)
 
-	cityController := cities.NewCityController(cityService)
-	airportController := airports.NewAirportController(airportService)
-	commentsController := comments.NewCommentController(commentService)
-	routesController := routes.NewRouteController(routesService, pathFindingService)
-	usersController := users.NewUserController(userService)
+	responder := handler.NewResponder(conf.Client.Origin)
 
-	jwtMiddleware := middleware.NewVerifyJWTMiddleware(securityService)
+	cityController := cities.NewCityController(cityService, responder)
+	airportController := airports.NewAirportController(airportService, responder)
+	commentsController := comments.NewCommentController(commentService, responder)
+	routesController := routes.NewRouteController(routesService, pathFindingService, responder)
+	usersController := users.NewUserController(userService, responder)
+
+	jwtMiddleware := middleware.NewVerifyJWTMiddleware(securityService, responder)
 
 	corsHandler := handler.NewCors(conf.Client.Origin)
 
