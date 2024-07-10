@@ -13,6 +13,7 @@ type ErrorResponseBody struct {
 }
 
 func ResolveErrorResponse(w http.ResponseWriter, err error) {
+	w.Header().Add("Content-Type", "application/json")
 	switch {
 	case errors.Is(err, database.ErrNotFound):
 		w.WriteHeader(http.StatusNotFound)
@@ -21,7 +22,7 @@ func ResolveErrorResponse(w http.ResponseWriter, err error) {
 	case errors.As(err, &ErrForbidden{}):
 		w.WriteHeader(http.StatusForbidden)
 	case errors.As(err, &ErrUnauthorized{}):
-		w.WriteHeader(http.StatusBadRequest)
+		w.WriteHeader(http.StatusUnauthorized)
 	default:
 		w.WriteHeader(http.StatusInternalServerError)
 	}
@@ -41,6 +42,7 @@ type Marshalable interface {
 }
 
 func Respond(w http.ResponseWriter, status int, body Marshalable) {
+	w.Header().Add("Content-Type", "application/json")
 	w.WriteHeader(status)
 	if body != nil {
 		bytesBody, err := body.MarshalJSON()

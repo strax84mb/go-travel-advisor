@@ -109,7 +109,7 @@ func main() {
 		CityRouter:    cityPrefixed,
 		AirportRouter: airportPrefixed,
 	})
-	usersController.RegisterHandlers(v1Router, userPrefixed)
+	usersController.RegisterHandlers(v1Router, userPrefixed, corsHandler)
 
 	srv := &http.Server{
 		Handler:      r,
