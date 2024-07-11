@@ -25,13 +25,11 @@ type airportService interface {
 
 type airportController struct {
 	airportSrvc airportService
-	r           *handler.Responder
 }
 
-func NewAirportController(airportSrvc airportService, r *handler.Responder) *airportController {
+func NewAirportController(airportSrvc airportService) *airportController {
 	return &airportController{
 		airportSrvc: airportSrvc,
-		r:           r,
 	}
 }
 
@@ -39,12 +37,15 @@ func (ac *airportController) RegisterHandlers(airportPrefixed *mux.Router, cityP
 	airportPrefixed.Path("").Methods(http.MethodGet).HandlerFunc(ac.ListAllAirports)
 	airportPrefixed.Path("").Methods(http.MethodPost).HandlerFunc(ac.SaveNewAirport)
 	airportPrefixed.Path("").Methods(http.MethodPatch).HandlerFunc(ac.ImportAirports)
+	handler.OptionsAllowedMethods(airportPrefixed, "", http.MethodGet, http.MethodPost, http.MethodPatch)
 
 	airportPrefixed.Path("/{id}").Methods(http.MethodGet).HandlerFunc(ac.GetAirportByID)
 	airportPrefixed.Path("/{id}").Methods(http.MethodPut).HandlerFunc(ac.UpdateAirport)
 	airportPrefixed.Path("/{id}").Methods(http.MethodDelete).HandlerFunc(ac.DeleteAirport)
+	handler.OptionsAllowedMethods(airportPrefixed, "/{id}", http.MethodGet, http.MethodPut, http.MethodDelete)
 
 	cityPrefixed.Path("/{id}/airports").Methods(http.MethodGet).HandlerFunc(ac.ListAirportsInCity)
+	handler.OptionsAllowedMethods(airportPrefixed, "/{id}/airports", http.MethodGet)
 }
 
 func (ac *airportController) listAirports(
@@ -52,16 +53,16 @@ func (ac *airportController) listAirports(
 	r *http.Request,
 	getter func(pagination utils.Pagination) ([]database.Airport, error),
 ) {
-	pagination, ok := utils.PaginationFromRequest(w, r, ac.r)
+	pagination, ok := utils.PaginationFromRequest(w, r)
 	if !ok {
 		return
 	}
 	airports, err := getter(pagination)
 	if err != nil {
-		ac.r.ResolveErrorResponse(w, err)
+		handler.ResolveErrorResponse(w, err)
 		return
 	}
-	ac.r.Respond(w, http.StatusOK, dto.AirportsToDtos(airports))
+	handler.Respond(w, http.StatusOK, dto.AirportsToDtos(airports))
 }
 
 func (ac *airportController) ListAllAirports(w http.ResponseWriter, r *http.Request) {
@@ -77,7 +78,7 @@ func (ac *airportController) ListAllAirports(w http.ResponseWriter, r *http.Requ
 func (ac *airportController) ListAirportsInCity(w http.ResponseWriter, r *http.Request) {
 	cityID, err := handler.Path(r, handler.Int64, "id", handler.IsPositive)
 	if err != nil {
-		ac.r.ResolveErrorResponse(w, err)
+		handler.ResolveErrorResponse(w, err)
 		return
 	}
 	ac.listAirports(
@@ -92,22 +93,22 @@ func (ac *airportController) ListAirportsInCity(w http.ResponseWriter, r *http.R
 func (ac *airportController) GetAirportByID(w http.ResponseWriter, r *http.Request) {
 	id, err := handler.Path(r, handler.Int64, "id", handler.IsPositive)
 	if err != nil {
-		ac.r.ResolveErrorResponse(w, err)
+		handler.ResolveErrorResponse(w, err)
 		return
 	}
 	airport, err := ac.airportSrvc.FindByID(r.Context(), id.Val())
 	if err != nil {
-		ac.r.ResolveErrorResponse(w, err)
+		handler.ResolveErrorResponse(w, err)
 		return
 	}
-	ac.r.Respond(w, http.StatusOK, dto.AirportToDto(airport))
+	handler.Respond(w, http.StatusOK, dto.AirportToDto(airport))
 }
 
 func (ac *airportController) SaveNewAirport(w http.ResponseWriter, r *http.Request) {
 	var payload dto.SaveAirportDto
 	err := handler.GetBody(r, &payload)
 	if err != nil {
-		ac.r.ResolveErrorResponse(w, err)
+		handler.ResolveErrorResponse(w, err)
 		return
 	}
 	airport, err := ac.airportSrvc.SaveNewAirport(r.Context(), database.Airport{
@@ -115,22 +116,22 @@ func (ac *airportController) SaveNewAirport(w http.ResponseWriter, r *http.Reque
 		CityID: payload.CityID,
 	})
 	if err != nil {
-		ac.r.ResolveErrorResponse(w, err)
+		handler.ResolveErrorResponse(w, err)
 		return
 	}
-	ac.r.Respond(w, http.StatusCreated, dto.AirportToDto(airport))
+	handler.Respond(w, http.StatusCreated, dto.AirportToDto(airport))
 }
 
 func (ac *airportController) UpdateAirport(w http.ResponseWriter, r *http.Request) {
 	id, err := handler.Path(r, handler.Int64, "id", handler.IsPositive)
 	if err != nil {
-		ac.r.ResolveErrorResponse(w, err)
+		handler.ResolveErrorResponse(w, err)
 		return
 	}
 	var payload dto.SaveAirportDto
 	err = handler.GetBody(r, &payload)
 	if err != nil {
-		ac.r.ResolveErrorResponse(w, err)
+		handler.ResolveErrorResponse(w, err)
 		return
 	}
 	err = ac.airportSrvc.UpdateAirport(r.Context(), database.Airport{
@@ -139,30 +140,30 @@ func (ac *airportController) UpdateAirport(w http.ResponseWriter, r *http.Reques
 		CityID: payload.CityID,
 	})
 	if err != nil {
-		ac.r.ResolveErrorResponse(w, err)
+		handler.ResolveErrorResponse(w, err)
 		return
 	}
-	ac.r.Respond(w, http.StatusOK, nil)
+	handler.Respond(w, http.StatusOK, nil)
 }
 
 func (ac *airportController) DeleteAirport(w http.ResponseWriter, r *http.Request) {
 	id, err := handler.Path(r, handler.Int64, "id", handler.IsPositive)
 	if err != nil {
-		ac.r.ResolveErrorResponse(w, err)
+		handler.ResolveErrorResponse(w, err)
 		return
 	}
 	err = ac.airportSrvc.DeleteAirport(r.Context(), id.Val())
 	if err != nil {
-		ac.r.ResolveErrorResponse(w, err)
+		handler.ResolveErrorResponse(w, err)
 		return
 	}
-	ac.r.Respond(w, http.StatusOK, nil)
+	handler.Respond(w, http.StatusOK, nil)
 }
 
 func (ac *airportController) ImportAirports(w http.ResponseWriter, r *http.Request) {
 	file, _, err := r.FormFile("file")
 	if err != nil {
-		ac.r.ResolveErrorResponse(w, handler.NewErrBadRequest(
+		handler.ResolveErrorResponse(w, handler.NewErrBadRequest(
 			err.Error(),
 		))
 		return
@@ -170,11 +171,11 @@ func (ac *airportController) ImportAirports(w http.ResponseWriter, r *http.Reque
 	defer file.Close()
 	bytes, err := io.ReadAll(file)
 	if err != nil {
-		ac.r.ResolveErrorResponse(w, handler.NewErrBadRequest(
+		handler.ResolveErrorResponse(w, handler.NewErrBadRequest(
 			fmt.Sprintf("could not read contents of uploaded file: %s", err.Error()),
 		))
 		return
 	}
 	go ac.airportSrvc.ImportAirports(context.Background(), bytes)
-	ac.r.Respond(w, http.StatusOK, nil)
+	handler.Respond(w, http.StatusOK, nil)
 }

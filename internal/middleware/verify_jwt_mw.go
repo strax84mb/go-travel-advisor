@@ -13,13 +13,11 @@ type securityService interface {
 
 type verifyJWTMiddleware struct {
 	securitySrvc securityService
-	r            *handler.Responder
 }
 
-func NewVerifyJWTMiddleware(securitySrvc securityService, r *handler.Responder) *verifyJWTMiddleware {
+func NewVerifyJWTMiddleware(securitySrvc securityService) *verifyJWTMiddleware {
 	return &verifyJWTMiddleware{
 		securitySrvc: securitySrvc,
-		r:            r,
 	}
 }
 
@@ -27,7 +25,7 @@ func (mw *verifyJWTMiddleware) Middleware(httpHandler http.Handler) http.Handler
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		id, roles, err := mw.securitySrvc.VerifyJWT(r)
 		if err != nil {
-			mw.r.ResolveErrorResponse(w, err)
+			handler.ResolveErrorResponse(w, err)
 			return
 		}
 		if id != 0 {

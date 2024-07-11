@@ -28,14 +28,12 @@ type iPathFindingService interface {
 type routeController struct {
 	routeSrvc iRouteService
 	pfSrvc    iPathFindingService
-	r         *handler.Responder
 }
 
-func NewRouteController(routeSrvc iRouteService, pfSrvc iPathFindingService, r *handler.Responder) *routeController {
+func NewRouteController(routeSrvc iRouteService, pfSrvc iPathFindingService) *routeController {
 	return &routeController{
 		routeSrvc: routeSrvc,
 		pfSrvc:    pfSrvc,
-		r:         r,
 	}
 }
 
@@ -49,16 +47,21 @@ type RegisterHandlersInput struct {
 func (rc *routeController) RegisterHandlers(input RegisterHandlersInput) {
 	input.RoutesRouter.Path("").Methods(http.MethodGet).HandlerFunc(rc.listRoutes)
 	input.RoutesRouter.Path("").Methods(http.MethodPost).HandlerFunc(rc.saveNewRoute)
+	handler.OptionsAllowedMethods(input.RoutesRouter, "", http.MethodGet, http.MethodPost)
 
 	input.RoutesRouter.Path("/{id}").Methods(http.MethodGet).HandlerFunc(rc.findByID)
 	input.RoutesRouter.Path("/{id}").Methods(http.MethodPut).HandlerFunc(rc.update)
 	input.RoutesRouter.Path("/{id}").Methods(http.MethodDelete).HandlerFunc(rc.delete)
+	handler.OptionsAllowedMethods(input.RoutesRouter, "/{id}", http.MethodGet, http.MethodPut, http.MethodDelete)
 
 	input.AirportRouter.Path("/{id}/routes").Methods(http.MethodGet).HandlerFunc(rc.listRoutesForAirport)
+	handler.OptionsAllowedMethods(input.AirportRouter, "/{id}/routes", http.MethodGet)
 
 	input.CityRouter.Path("/{id}/routes").Methods(http.MethodGet).HandlerFunc(rc.listRoutesForCity)
+	handler.OptionsAllowedMethods(input.CityRouter, "/{id}/routes", http.MethodGet)
 
 	input.V1Router.Path("/cheapest-route").Methods(http.MethodGet).HandlerFunc(rc.cheapestPath)
+	handler.OptionsAllowedMethods(input.V1Router, "/cheapest-route", http.MethodGet)
 }
 
 func (rc *routeController) doList(
@@ -66,16 +69,16 @@ func (rc *routeController) doList(
 	r *http.Request,
 	getter func(utils.Pagination) ([]database.Route, error),
 ) {
-	pagination, ok := utils.PaginationFromRequest(w, r, rc.r)
+	pagination, ok := utils.PaginationFromRequest(w, r)
 	if !ok {
 		return
 	}
 	list, err := getter(pagination)
 	if err != nil {
-		rc.r.ResolveErrorResponse(w, err)
+		handler.ResolveErrorResponse(w, err)
 		return
 	}
-	rc.r.Respond(w, http.StatusOK, dto.RoutesToDtos(list))
+	handler.Respond(w, http.StatusOK, dto.RoutesToDtos(list))
 }
 
 func (rc *routeController) listRoutes(w http.ResponseWriter, r *http.Request) {
@@ -100,7 +103,7 @@ func getDirection(r *http.Request) Direction {
 func (rc *routeController) listRoutesForCity(w http.ResponseWriter, r *http.Request) {
 	cityID, err := handler.Path(r, handler.Int64, "id", handler.IsPositive)
 	if err != nil {
-		rc.r.ResolveErrorResponse(w, err)
+		handler.ResolveErrorResponse(w, err)
 		return
 	}
 	rc.doList(w, r, func(pagination utils.Pagination) ([]database.Route, error) {
@@ -116,7 +119,7 @@ func (rc *routeController) listRoutesForCity(w http.ResponseWriter, r *http.Requ
 func (rc *routeController) listRoutesForAirport(w http.ResponseWriter, r *http.Request) {
 	airportID, err := handler.Path(r, handler.Int64, "id", handler.IsPositive)
 	if err != nil {
-		rc.r.ResolveErrorResponse(w, err)
+		handler.ResolveErrorResponse(w, err)
 		return
 	}
 	rc.doList(w, r, func(pagination utils.Pagination) ([]database.Route, error) {
@@ -132,22 +135,22 @@ func (rc *routeController) listRoutesForAirport(w http.ResponseWriter, r *http.R
 func (rc *routeController) findByID(w http.ResponseWriter, r *http.Request) {
 	id, err := handler.Path(r, handler.Int64, "id", handler.IsPositive)
 	if err != nil {
-		rc.r.ResolveErrorResponse(w, err)
+		handler.ResolveErrorResponse(w, err)
 		return
 	}
 	route, err := rc.routeSrvc.RouteByID(r.Context(), id.Val())
 	if err != nil {
-		rc.r.ResolveErrorResponse(w, err)
+		handler.ResolveErrorResponse(w, err)
 		return
 	}
-	rc.r.Respond(w, http.StatusCreated, dto.RouteToDto(*route))
+	handler.Respond(w, http.StatusCreated, dto.RouteToDto(*route))
 }
 
 func (rc *routeController) saveNewRoute(w http.ResponseWriter, r *http.Request) {
 	var payload dto.SaveRouteDto
 	err := handler.GetBody(r, &payload)
 	if err != nil {
-		rc.r.ResolveErrorResponse(w, err)
+		handler.ResolveErrorResponse(w, err)
 		return
 	}
 	route, err := rc.routeSrvc.SaveNew(r.Context(), database.Route{
@@ -156,65 +159,65 @@ func (rc *routeController) saveNewRoute(w http.ResponseWriter, r *http.Request) 
 		Price:         payload.Price,
 	})
 	if err != nil {
-		rc.r.ResolveErrorResponse(w, err)
+		handler.ResolveErrorResponse(w, err)
 		return
 	}
-	rc.r.Respond(w, http.StatusOK, dto.RouteToDto(*route))
+	handler.Respond(w, http.StatusOK, dto.RouteToDto(*route))
 }
 
 func (rc *routeController) update(w http.ResponseWriter, r *http.Request) {
 	id, err := handler.Path(r, handler.Int64, "id", handler.IsPositive)
 	if err != nil {
-		rc.r.ResolveErrorResponse(w, err)
+		handler.ResolveErrorResponse(w, err)
 		return
 	}
 	var payload dto.UpdateRoutePrice
 	err = handler.GetBody(r, &payload)
 	if err != nil {
-		rc.r.ResolveErrorResponse(w, err)
+		handler.ResolveErrorResponse(w, err)
 		return
 	}
 	err = rc.routeSrvc.UpdateRoutePrice(r.Context(), id.Val(), payload.Price)
 	if err != nil {
-		rc.r.ResolveErrorResponse(w, err)
+		handler.ResolveErrorResponse(w, err)
 		return
 	}
-	rc.r.Respond(w, http.StatusOK, nil)
+	handler.Respond(w, http.StatusOK, nil)
 }
 
 func (rc *routeController) delete(w http.ResponseWriter, r *http.Request) {
 	id, err := handler.Path(r, handler.Int64, "id", handler.IsPositive)
 	if err != nil {
-		rc.r.ResolveErrorResponse(w, err)
+		handler.ResolveErrorResponse(w, err)
 		return
 	}
 	err = rc.routeSrvc.DeleteRoute(r.Context(), id.Val())
 	if err != nil {
-		rc.r.ResolveErrorResponse(w, err)
+		handler.ResolveErrorResponse(w, err)
 		return
 	}
-	rc.r.Respond(w, http.StatusOK, nil)
+	handler.Respond(w, http.StatusOK, nil)
 }
 
 func (rc *routeController) cheapestPath(w http.ResponseWriter, r *http.Request) {
 	beginID, err := handler.Query(r, handler.Int64, "begin", true, 0, handler.IsPositive)
 	if err != nil {
-		rc.r.ResolveErrorResponse(w, err)
+		handler.ResolveErrorResponse(w, err)
 		return
 	}
 	endID, err := handler.Query(r, handler.Int64, "end", true, 0, handler.IsPositive)
 	if err != nil {
-		rc.r.ResolveErrorResponse(w, err)
+		handler.ResolveErrorResponse(w, err)
 		return
 	}
 	path, cheapestPrice, err := rc.pfSrvc.FindCheapestPath(r.Context(), beginID.Val(), endID.Val())
 	if err != nil {
-		rc.r.ResolveErrorResponse(w, err)
+		handler.ResolveErrorResponse(w, err)
 		return
 	}
 	payload, err := dto.CompileCheapestPath(path, cheapestPrice).Encode()
 	if err != nil {
-		rc.r.ResolveErrorResponse(w, err)
+		handler.ResolveErrorResponse(w, err)
 		return
 	}
 	w.WriteHeader(http.StatusOK)

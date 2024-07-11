@@ -24,111 +24,109 @@ type iCityService interface {
 
 type cityController struct {
 	citySrvc iCityService
-	r        *handler.Responder
 }
 
-func NewCityController(citySrvc iCityService, r *handler.Responder) *cityController {
+func NewCityController(citySrvc iCityService) *cityController {
 	return &cityController{
 		citySrvc: citySrvc,
-		r:        r,
 	}
 }
 
-func (cc *cityController) RegisterHandlers(r *mux.Router, c *handler.Cors) {
+func (cc *cityController) RegisterHandlers(r *mux.Router) {
 	r.Path("").Methods(http.MethodGet).HandlerFunc(cc.ListAllCities)
 	r.Path("").Methods(http.MethodPost).HandlerFunc(cc.SaveNewCity)
 	r.Path("").Methods(http.MethodPatch).HandlerFunc(cc.ImportCities)
-	c.Options(r, "", http.MethodGet, http.MethodPost, http.MethodPatch)
+	handler.OptionsAllowedMethods(r, "", http.MethodGet, http.MethodPost, http.MethodPatch)
 
 	r.Path("/{id}").Methods(http.MethodGet).HandlerFunc(cc.GetCityByID)
 	r.Path("/{id}").Methods(http.MethodPut).HandlerFunc(cc.UpdateCity)
 	r.Path("/{id}").Methods(http.MethodDelete).HandlerFunc(cc.DeleteCity)
-	c.Options(r, "/{id}", http.MethodGet, http.MethodPut, http.MethodDelete)
+	handler.OptionsAllowedMethods(r, "/{id}", http.MethodGet, http.MethodPut, http.MethodDelete)
 }
 
 func (cc *cityController) ListAllCities(w http.ResponseWriter, r *http.Request) {
-	pagination, ok := utils.PaginationFromRequest(w, r, cc.r)
+	pagination, ok := utils.PaginationFromRequest(w, r)
 	if !ok {
 		return
 	}
 	ctx := r.Context()
 	cities, err := cc.citySrvc.ListCities(ctx, pagination)
 	if err != nil {
-		cc.r.ResolveErrorResponse(w, err)
+		handler.ResolveErrorResponse(w, err)
 		return
 	}
-	cc.r.Respond(w, http.StatusOK, dto.CitiesToDtos(cities))
+	handler.Respond(w, http.StatusOK, dto.CitiesToDtos(cities))
 }
 
 func (cc *cityController) GetCityByID(w http.ResponseWriter, r *http.Request) {
 	id, err := handler.Path(r, handler.Int64, "id", handler.IsPositive)
 	if err != nil {
-		cc.r.ResolveErrorResponse(w, err)
+		handler.ResolveErrorResponse(w, err)
 		return
 	}
 	ctx := r.Context()
 	city, err := cc.citySrvc.FindByID(ctx, id.Val())
 	if err != nil {
-		cc.r.ResolveErrorResponse(w, err)
+		handler.ResolveErrorResponse(w, err)
 		return
 	}
-	cc.r.Respond(w, http.StatusOK, dto.CityToDto(city))
+	handler.Respond(w, http.StatusOK, dto.CityToDto(city))
 }
 
 func (cc *cityController) SaveNewCity(w http.ResponseWriter, r *http.Request) {
 	var payload dto.SaveCityDto
 	err := handler.GetBody(r, &payload)
 	if err != nil {
-		cc.r.ResolveErrorResponse(w, err)
+		handler.ResolveErrorResponse(w, err)
 		return
 	}
 	city, err := cc.citySrvc.SaveNewCity(r.Context(), payload.Name)
 	if err != nil {
-		cc.r.ResolveErrorResponse(w, err)
+		handler.ResolveErrorResponse(w, err)
 		return
 	}
-	cc.r.Respond(w, http.StatusCreated, dto.CityToDto(city))
+	handler.Respond(w, http.StatusCreated, dto.CityToDto(city))
 }
 
 func (cc *cityController) UpdateCity(w http.ResponseWriter, r *http.Request) {
 	id, err := handler.Path(r, handler.Int64, "id", handler.IsPositive)
 	if err != nil {
-		cc.r.ResolveErrorResponse(w, err)
+		handler.ResolveErrorResponse(w, err)
 		return
 	}
 	var payload dto.SaveCityDto
 	err = handler.GetBody(r, &payload)
 	if err != nil {
-		cc.r.ResolveErrorResponse(w, err)
+		handler.ResolveErrorResponse(w, err)
 		return
 	}
 	ctx := r.Context()
 	err = cc.citySrvc.UpdateCity(ctx, id.Val(), payload.Name)
 	if err != nil {
-		cc.r.ResolveErrorResponse(w, err)
+		handler.ResolveErrorResponse(w, err)
 		return
 	}
-	cc.r.Respond(w, http.StatusOK, nil)
+	handler.Respond(w, http.StatusOK, nil)
 }
 
 func (cc *cityController) DeleteCity(w http.ResponseWriter, r *http.Request) {
 	id, err := handler.Path(r, handler.Int64, "id", handler.IsPositive)
 	if err != nil {
-		cc.r.ResolveErrorResponse(w, err)
+		handler.ResolveErrorResponse(w, err)
 		return
 	}
 	err = cc.citySrvc.DeleteCity(r.Context(), id.Val())
 	if err != nil {
-		cc.r.ResolveErrorResponse(w, err)
+		handler.ResolveErrorResponse(w, err)
 		return
 	}
-	cc.r.Respond(w, http.StatusOK, nil)
+	handler.Respond(w, http.StatusOK, nil)
 }
 
 func (cc *cityController) ImportCities(w http.ResponseWriter, r *http.Request) {
 	file, _, err := r.FormFile("file")
 	if err != nil {
-		cc.r.ResolveErrorResponse(w, handler.NewErrBadRequest(
+		handler.ResolveErrorResponse(w, handler.NewErrBadRequest(
 			err.Error(),
 		))
 		return
@@ -136,11 +134,11 @@ func (cc *cityController) ImportCities(w http.ResponseWriter, r *http.Request) {
 	defer file.Close()
 	bytes, err := io.ReadAll(file)
 	if err != nil {
-		cc.r.ResolveErrorResponse(w, handler.NewErrBadRequest(
+		handler.ResolveErrorResponse(w, handler.NewErrBadRequest(
 			fmt.Sprintf("could not read contents of uploaded file: %s", err.Error()),
 		))
 		return
 	}
 	go cc.citySrvc.ImportCities(context.Background(), bytes)
-	cc.r.Respond(w, http.StatusOK, nil)
+	handler.Respond(w, http.StatusOK, nil)
 }

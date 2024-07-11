@@ -23,7 +23,6 @@ import (
 	"gitlab.strale.io/go-travel/internal/users"
 	userRepo "gitlab.strale.io/go-travel/internal/users/repository"
 	"gitlab.strale.io/go-travel/internal/utils"
-	"gitlab.strale.io/go-travel/internal/utils/handler"
 )
 
 // Hello a handler for /hello/:name endpoint
@@ -74,21 +73,19 @@ func main() {
 		routeRepository,
 	)
 
-	responder := handler.NewResponder(conf.Client.Origin)
+	cityController := cities.NewCityController(cityService)
+	airportController := airports.NewAirportController(airportService)
+	commentsController := comments.NewCommentController(commentService)
+	routesController := routes.NewRouteController(routesService, pathFindingService)
+	usersController := users.NewUserController(userService)
 
-	cityController := cities.NewCityController(cityService, responder)
-	airportController := airports.NewAirportController(airportService, responder)
-	commentsController := comments.NewCommentController(commentService, responder)
-	routesController := routes.NewRouteController(routesService, pathFindingService, responder)
-	usersController := users.NewUserController(userService, responder)
-
-	jwtMiddleware := middleware.NewVerifyJWTMiddleware(securityService, responder)
-
-	corsHandler := handler.NewCors(conf.Client.Origin)
+	jwtMiddleware := middleware.NewVerifyJWTMiddleware(securityService)
+	corsMiddleware := middleware.NewCorsMiddleware(conf.Client.Origin)
 
 	r := mux.NewRouter()
 	r.Use(middleware.RequestIDMiddleware)
 	r.Use(jwtMiddleware.Middleware)
+	r.Use(corsMiddleware.Middleware)
 
 	v1Router := r.PathPrefix("/v1").Subrouter()
 	cityPrefixed := v1Router.PathPrefix("/cities").Subrouter()
@@ -97,7 +94,7 @@ func main() {
 	routePrefixed := v1Router.PathPrefix("/routes").Subrouter()
 	airportPrefixed := v1Router.PathPrefix("/airports").Subrouter()
 
-	cityController.RegisterHandlers(cityPrefixed, corsHandler)
+	cityController.RegisterHandlers(cityPrefixed)
 	airportController.RegisterHandlers(airportPrefixed, cityPrefixed)
 	commentsController.RegisterHandlers(comments.RegisterHandlersInput{
 		V1Prefixed:       v1Router,
@@ -111,7 +108,7 @@ func main() {
 		CityRouter:    cityPrefixed,
 		AirportRouter: airportPrefixed,
 	})
-	usersController.RegisterHandlers(v1Router, userPrefixed, corsHandler)
+	usersController.RegisterHandlers(v1Router, userPrefixed)
 
 	srv := &http.Server{
 		Handler:      r,

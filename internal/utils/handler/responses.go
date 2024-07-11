@@ -12,19 +12,7 @@ type ErrorResponseBody struct {
 	Error string `json:"error"`
 }
 
-type Responder struct {
-	origin string
-}
-
-func NewResponder(origin string) *Responder {
-	return &Responder{
-		origin: origin,
-	}
-}
-
-func (r *Responder) ResolveErrorResponse(w http.ResponseWriter, err error) {
-	w.Header().Add("Content-Type", "application/json")
-	w.Header().Add("Access-Control-Allow-Origin", r.origin)
+func ResolveErrorResponse(w http.ResponseWriter, err error) {
 	switch {
 	case errors.Is(err, database.ErrNotFound):
 		w.WriteHeader(http.StatusNotFound)
@@ -52,9 +40,7 @@ type Marshalable interface {
 	MarshalJSON() ([]byte, error)
 }
 
-func (r *Responder) Respond(w http.ResponseWriter, status int, body Marshalable) {
-	w.Header().Add("Content-Type", "application/json")
-	w.Header().Add("Access-Control-Allow-Origin", r.origin)
+func Respond(w http.ResponseWriter, status int, body Marshalable) {
 	w.WriteHeader(status)
 	if body != nil {
 		bytesBody, err := body.MarshalJSON()
