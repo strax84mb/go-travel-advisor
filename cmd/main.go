@@ -110,6 +110,8 @@ func main() {
 	})
 	usersController.RegisterHandlers(v1Router, userPrefixed)
 
+	corsMiddleware.AddOptionsHandlersForRoures(r)
+
 	srv := &http.Server{
 		Handler:      r,
 		Addr:         fmt.Sprintf("%s:%d", conf.Server.Address, conf.Server.Port),

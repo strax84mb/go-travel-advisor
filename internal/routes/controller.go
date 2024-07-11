@@ -47,21 +47,16 @@ type RegisterHandlersInput struct {
 func (rc *routeController) RegisterHandlers(input RegisterHandlersInput) {
 	input.RoutesRouter.Path("").Methods(http.MethodGet).HandlerFunc(rc.listRoutes)
 	input.RoutesRouter.Path("").Methods(http.MethodPost).HandlerFunc(rc.saveNewRoute)
-	handler.OptionsAllowedMethods(input.RoutesRouter, "", http.MethodGet, http.MethodPost)
 
 	input.RoutesRouter.Path("/{id}").Methods(http.MethodGet).HandlerFunc(rc.findByID)
 	input.RoutesRouter.Path("/{id}").Methods(http.MethodPut).HandlerFunc(rc.update)
 	input.RoutesRouter.Path("/{id}").Methods(http.MethodDelete).HandlerFunc(rc.delete)
-	handler.OptionsAllowedMethods(input.RoutesRouter, "/{id}", http.MethodGet, http.MethodPut, http.MethodDelete)
 
 	input.AirportRouter.Path("/{id}/routes").Methods(http.MethodGet).HandlerFunc(rc.listRoutesForAirport)
-	handler.OptionsAllowedMethods(input.AirportRouter, "/{id}/routes", http.MethodGet)
 
 	input.CityRouter.Path("/{id}/routes").Methods(http.MethodGet).HandlerFunc(rc.listRoutesForCity)
-	handler.OptionsAllowedMethods(input.CityRouter, "/{id}/routes", http.MethodGet)
 
 	input.V1Router.Path("/cheapest-route").Methods(http.MethodGet).HandlerFunc(rc.cheapestPath)
-	handler.OptionsAllowedMethods(input.V1Router, "/cheapest-route", http.MethodGet)
 }
 
 func (rc *routeController) doList(

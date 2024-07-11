@@ -28,12 +28,9 @@ func NewUserController(userSrvc iUserService) *userController {
 
 func (uc *userController) RegisterHandlers(v1Router *mux.Router, userRouter *mux.Router) {
 	v1Router.Path("/login").Methods(http.MethodPost).HandlerFunc(uc.Login)
-	handler.OptionsAllowedMethods(v1Router, "/login", http.MethodPost)
 
 	userRouter.Path("").Queries("username", "{username:.+}").Methods(http.MethodGet).HandlerFunc(uc.GetUserByUsername)
-	handler.OptionsAllowedMethods(userRouter, "", http.MethodGet)
 	userRouter.Path("/{id}").Methods(http.MethodGet).HandlerFunc(uc.GetUserById)
-	handler.OptionsAllowedMethods(userRouter, "/{id}", http.MethodGet)
 }
 
 func (uc *userController) Login(w http.ResponseWriter, r *http.Request) {

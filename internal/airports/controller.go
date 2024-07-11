@@ -37,15 +37,12 @@ func (ac *airportController) RegisterHandlers(airportPrefixed *mux.Router, cityP
 	airportPrefixed.Path("").Methods(http.MethodGet).HandlerFunc(ac.ListAllAirports)
 	airportPrefixed.Path("").Methods(http.MethodPost).HandlerFunc(ac.SaveNewAirport)
 	airportPrefixed.Path("").Methods(http.MethodPatch).HandlerFunc(ac.ImportAirports)
-	handler.OptionsAllowedMethods(airportPrefixed, "", http.MethodGet, http.MethodPost, http.MethodPatch)
 
 	airportPrefixed.Path("/{id}").Methods(http.MethodGet).HandlerFunc(ac.GetAirportByID)
 	airportPrefixed.Path("/{id}").Methods(http.MethodPut).HandlerFunc(ac.UpdateAirport)
 	airportPrefixed.Path("/{id}").Methods(http.MethodDelete).HandlerFunc(ac.DeleteAirport)
-	handler.OptionsAllowedMethods(airportPrefixed, "/{id}", http.MethodGet, http.MethodPut, http.MethodDelete)
 
 	cityPrefixed.Path("/{id}/airports").Methods(http.MethodGet).HandlerFunc(ac.ListAirportsInCity)
-	handler.OptionsAllowedMethods(airportPrefixed, "/{id}/airports", http.MethodGet)
 }
 
 func (ac *airportController) listAirports(

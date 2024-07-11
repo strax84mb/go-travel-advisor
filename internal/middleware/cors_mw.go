@@ -1,6 +1,11 @@
 package middleware
 
-import "net/http"
+import (
+	"net/http"
+	"strings"
+
+	"github.com/gorilla/mux"
+)
 
 type corsMiddleware struct {
 	origin string
@@ -25,4 +30,37 @@ func (cmw *corsMiddleware) Middleware(httpHandler http.Handler) http.Handler {
 			w.Header().Add("Access-Control-Allow-Origin", cmw.origin)
 		}
 	})
+}
+
+func (cmw *corsMiddleware) AddOptionsHandlersForRoures(router *mux.Router) error {
+	routesMap := make(map[string][]string)
+	err := router.Walk(func(route *mux.Route, router *mux.Router, ancestors []*mux.Route) error {
+		path, err := route.GetPathTemplate()
+		if err != nil {
+			return err
+		}
+		methods, err := route.GetMethods()
+		if err != nil {
+			return err
+		}
+		if len(methods) > 0 {
+			routesMap[path] = append(routesMap[path], methods...)
+		}
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+	var allMethods string
+	for path, methods := range routesMap {
+		allMethods = strings.Join(append(methods, http.MethodOptions), ",")
+		router.Path(path).
+			Methods(http.MethodOptions).
+			HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Add("Access-Control-Allow-Methods", allMethods)
+				w.WriteHeader(http.StatusNoContent)
+			})
+		routesMap[path] = nil
+	}
+	return nil
 }

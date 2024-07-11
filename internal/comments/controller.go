@@ -40,25 +40,19 @@ type RegisterHandlersInput struct {
 
 func (cc *commentController) RegisterHandlers(input RegisterHandlersInput) {
 	input.V1Prefixed.Path("/me/comments").Methods(http.MethodGet).HandlerFunc(cc.listCommentsForMe)
-	handler.OptionsAllowedMethods(input.V1Prefixed, "/me/comments", http.MethodGet)
 
 	input.CityPrefixed.Path("/{id}/comments").Methods(http.MethodGet).HandlerFunc(cc.listCommentsForCity)
-	handler.OptionsAllowedMethods(input.CityPrefixed, "/{id}/comments", http.MethodGet)
 
 	input.UsersPrefixed.Path("/{id}/comments").Methods(http.MethodGet).HandlerFunc(cc.listCommentsForUser)
-	handler.OptionsAllowedMethods(input.UsersPrefixed, "/{id}/comments", http.MethodGet)
 
 	input.CommentsPrefixed.Path("").Methods(http.MethodGet).HandlerFunc(cc.listComments)
 	input.CommentsPrefixed.Path("").Methods(http.MethodPost).HandlerFunc(cc.saveNewComment)
-	handler.OptionsAllowedMethods(input.CommentsPrefixed, "", http.MethodGet, http.MethodPost)
 
 	input.CommentsPrefixed.Path("/{id}").Methods(http.MethodGet).HandlerFunc(cc.getCommentByID)
 	input.CommentsPrefixed.Path("/{id}").Methods(http.MethodPut).HandlerFunc(cc.updateComment)
 	input.CommentsPrefixed.Path("/{id}").Methods(http.MethodDelete).HandlerFunc(cc.deleteComment)
-	handler.OptionsAllowedMethods(input.CommentsPrefixed, "/{id}", http.MethodGet, http.MethodPut, http.MethodDelete)
 
 	input.CommentsPrefixed.Path("/{id}/force").Methods(http.MethodDelete).HandlerFunc(cc.forceDeleteComment)
-	handler.OptionsAllowedMethods(input.CommentsPrefixed, "/{id}/force", http.MethodDelete)
 }
 
 func (cc *commentController) listComments(w http.ResponseWriter, r *http.Request) {
