@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/gorilla/mux"
-	"github.com/julienschmidt/httprouter"
 	log "github.com/sirupsen/logrus"
 	"gitlab.strale.io/go-travel/internal/airports"
 	airportRepo "gitlab.strale.io/go-travel/internal/airports/repository"
@@ -24,13 +23,6 @@ import (
 	userRepo "gitlab.strale.io/go-travel/internal/users/repository"
 	"gitlab.strale.io/go-travel/internal/utils"
 )
-
-// Hello a handler for /hello/:name endpoint
-func Hello(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	w.WriteHeader(http.StatusOK)
-	content := fmt.Sprintf("Hello to you too %s\n", ps.ByName("name"))
-	w.Write([]byte(content))
-}
 
 func main() {
 	log.SetFormatter(&log.JSONFormatter{})
@@ -110,7 +102,9 @@ func main() {
 	})
 	usersController.RegisterHandlers(v1Router, userPrefixed)
 
-	corsMiddleware.AddOptionsHandlersForRoures(r)
+	if err = corsMiddleware.AddOptionsHandlersForRoures(r); err != nil {
+		log.Fatal("failed to add OPTIONS handlers: ", err.Error())
+	}
 
 	srv := &http.Server{
 		Handler:      r,

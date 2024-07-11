@@ -40,7 +40,7 @@ func (cmw *corsMiddleware) AddOptionsHandlersForRoures(router *mux.Router) error
 			return err
 		}
 		methods, err := route.GetMethods()
-		if err != nil {
+		if err != nil && err.Error() != "mux: route doesn't have methods" {
 			return err
 		}
 		if len(methods) > 0 {
