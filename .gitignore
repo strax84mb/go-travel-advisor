@@ -3,3 +3,4 @@ cmd/test.db
 build
 dev.db
 coverage
+*.exe
