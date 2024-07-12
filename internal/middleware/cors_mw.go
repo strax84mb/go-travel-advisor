@@ -24,11 +24,12 @@ func (cmw *corsMiddleware) Middleware(httpHandler http.Handler) http.Handler {
 			w.Header().Add("Access-Control-Allow-Credentials", "false")
 			w.Header().Add("Access-Control-Expose-Headers", "Content-Type,Origin,Accept")
 			w.Header().Add("Access-Control-Max-Age", "900")
-			w.Header().Add("Access-Control-Allow-Headers", "Content-Type,Origin,Accept,Authorization,X-Requested-With")
+			w.Header().Add("Access-Control-Allow-Headers", "Content-Type,Origin,Accept,Authorization,X-Requested-With,Access-Control-Allow-Origin")
 		} else {
 			w.Header().Add("Content-Type", "application/json")
 			w.Header().Add("Access-Control-Allow-Origin", cmw.origin)
 		}
+		httpHandler.ServeHTTP(w, r)
 	})
 }
 
