@@ -1,0 +1,299 @@
+openapi: '3.0.3'
+info:
+  title: API Title
+  version: '1.0'
+
+servers:
+  - url: http://traveladvisor.local:8080/v1
+    description: Test Server
+
+security:
+  - BearerAuth: []
+
+paths:
+  /login:
+    post:
+      tags:
+        - Users
+      requestBody:
+        $ref: '#/components/requestBodies/UsernameAndPassword'
+      responses:
+        '200':
+          $ref: '#/components/responses/JwtToken'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+  /users:
+    get:
+      tags:
+        - Users
+      parameters:
+        - $ref: '#/components/parameters/UsernameQuery'
+      responses:
+        '200':
+          $ref: '#/components/responses/User'
+        '400':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+        '500':
+          $ref: '#/components/responses/Error'
+  /users/{id}:
+    get:
+      tags:
+        - Users
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      responses:
+        '200':
+          $ref: '#/components/responses/User'
+        '400':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+        '500':
+          $ref: '#/components/responses/Error'
+  /airports:
+    get:
+      tags:
+        - Airports
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+      responses:
+        '200':
+          $ref: '#/components/responses/AirportList'
+        '400':
+          $ref: '#/components/responses/Error'
+        '500':
+          $ref: '#/components/responses/Error'
+    post:
+      tags:
+        - Airports
+      security:
+        - BearerAuth: []
+      requestBody:
+        $ref: '#/components/requestBodies/AirportNameAndCityId'
+      responses:
+        '201':
+          $ref: '#/components/responses/Airport'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+        '500':
+          $ref: '#/components/responses/Error'
+    patch:
+      tags:
+        - Airports
+      security:
+        - BearerAuth: []
+      requestBody:
+        description: Airports to be imported in the form of CSV
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: Ok
+        '400':
+          $ref: '#/components/responses/Error'
+        '500':
+          $ref: '#/components/responses/Error'
+  /airports/{id}:
+    get:
+      tags:
+        - Airports
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      responses:
+        '200':
+          $ref: '#/components/responses/Airport'
+        '400':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+        '500':
+          $ref: '#/components/responses/Error'
+    put:
+      tags:
+        - Airports
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      responses:
+        '200':
+          description: Ok
+        '400':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+        '500':
+          $ref: '#/components/responses/Error'
+    delete:
+      tags:
+        - Airports
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      responses:
+        '200':
+          description: Ok
+        '400':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+        '500':
+          $ref: '#/components/responses/Error'
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+  parameters:
+    IdPath:
+      required: true
+      name: id
+      schema:
+        $ref: '#/components/schemas/IdSchema'
+      in: path
+    UsernameQuery:
+      required: true
+      name: username
+      in: query
+      schema:
+        $ref: '#/components/schemas/UsernameSchema'
+    Page:
+      required: false
+      name: page
+      in: query
+      schema:
+        $ref: '#/components/schemas/PageSchema'
+    PageSize:
+      required: false
+      name: pageSize
+      in: query
+      schema:
+        $ref: '#/components/schemas/PageSchema'
+  requestBodies:
+    UsernameAndPassword:
+      description: Username and password needed to login user
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/UsernameAndPassword'
+    AirportNameAndCityId:
+      description: Airport name and city ID
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/AirportNameAndCityId'
+  responses:
+    Error:
+      description: Information about error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    JwtToken:
+      description: JWT token
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/JwtToken'
+    User:
+      description: User ID and username
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/User'
+    Airport:
+      description: Airport
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Airport'
+    AirportList:
+      description: List of airports
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/AirportList'
+  schemas:
+    IdSchema:
+      type: integer
+      minimum: 1
+    Error:
+      properties:
+        error:
+          type: string
+      required:
+        - error
+    UsernameSchema:
+      type: string
+      minLength: 6
+      maxLength: 30
+      pattern: '[a-zA-Z0-9\\.,?\\/@#$%&*]{6,30}'
+    UsernameAndPassword:
+      properties:
+        username:
+          $ref: '#/components/schemas/UsernameSchema'
+        password:
+          type: string
+          minLength: 6
+          maxLength: 30
+          pattern: '[a-zA-Z0-9\\.,?\\/@#$%&*]{6,30}'
+      required:
+        - username
+        - password
+    JwtToken:
+      properties:
+        token:
+          type: string
+      required:
+        - token
+    User:
+      properties:
+        id:
+          $ref: '#/components/schemas/IdSchema'
+        username:
+          type: string
+      required:
+        - id
+        - username
+    AirportNameAndCityId:
+      properties:
+        name:
+          type: string
+          maxLength: 100
+        cityId:
+          $ref: '#/components/schemas/IdSchema'
+      required:
+        - name
+        - cityId
+    Airport:
+      allOf:
+        - properties:
+            id:
+              $ref: '#/components/schemas/IdSchema'
+          required:
+            - id
+        - $ref: '#/components/schemas/AirportNameAndCityId'
+    AirportList:
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Airport'
+      required:
+        - items
+    PageSchema:
+      type: integer
+      minimum: 0
