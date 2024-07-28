@@ -54,6 +54,23 @@ paths:
           $ref: '#/components/responses/Error'
         '500':
           $ref: '#/components/responses/Error'
+  /users/{id}/comments:
+    get:
+      tags:
+        - Comments
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+      responses:
+        '200':
+          $ref: '#/components/responses/CommentsList'
+        '400':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+        '500':
+          $ref: '#/components/responses/Error'
   /airports:
     get:
       tags:
@@ -128,6 +145,8 @@ paths:
         - Airports
       parameters:
         - $ref: '#/components/parameters/IdPath'
+      security:
+        - BearerAuth: []
       responses:
         '200':
           description: Ok
@@ -142,6 +161,8 @@ paths:
         - Airports
       parameters:
         - $ref: '#/components/parameters/IdPath'
+      security:
+        - BearerAuth: []
       responses:
         '200':
           description: Ok
@@ -151,6 +172,165 @@ paths:
           $ref: '#/components/responses/Error'
         '500':
           $ref: '#/components/responses/Error'
+  #/airports/{id}/routes:
+    #get:
+  #/cities:
+    #get:
+    #post:
+    #patch:
+  #/cities/{id}:
+    #get:
+    #put:
+    #delete:
+  /cities/{id}/comments:
+    get:
+      tags:
+        - Comments
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+      responses:
+        '200':
+          $ref: '#/components/responses/CommentsList'
+        '400':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+        '500':
+          $ref: '#/components/responses/Error'
+  #/cities/{id}/routes:
+    #get:
+  /comments:
+    get:
+      tags:
+        - Comments
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+      responses:
+        '200':
+          $ref: '#/components/responses/CommentsList'
+        '400':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+        '500':
+          $ref: '#/components/responses/Error'
+    post:
+      tags:
+        - Comments
+      security:
+        - BearerAuth: []
+      requestBody:
+        $ref: '#/components/requestBodies/SaveNewComment'
+      responses:
+        '200':
+          $ref: '#/components/responses/Comment'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '500':
+          $ref: '#/components/responses/Error'
+  /comments/{id}:
+    get:
+      tags:
+        - Comments
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          $ref: '#/components/responses/Comment'
+        '400':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+        '500':
+          $ref: '#/components/responses/Error'
+    put:
+      tags:
+        - Comments
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      security:
+        - BearerAuth: []
+      requestBody:
+        $ref: '#/components/requestBodies/UpdateComment'
+      responses:
+        '200':
+          description: Ok
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+        '500':
+          $ref: '#/components/responses/Error'
+    delete:
+      tags:
+        - Comments
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Ok
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+        '500':
+          $ref: '#/components/responses/Error'
+  /comments/{id}/force:
+    delete:
+      tags:
+        - Comments
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Ok
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+        '500':
+          $ref: '#/components/responses/Error'
+  #/routes:
+  #/routes/{id}:
+  /me/comments:
+    get:
+      tags:
+        - Comments
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          $ref: '#/components/responses/CommentsList'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+        '500':
+          $ref: '#/components/responses/Error'
+  #/cheapest-route:
+    #get:
 
 components:
   securitySchemes:
@@ -195,6 +375,24 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/AirportNameAndCityId'
+    SaveNewComment:
+      description: Comment to be saved
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/SaveNewComment'
+    UpdateComment:
+      description: Comment to be updated
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/UpdateComment'
+    CityName:
+      description: City to save
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/CityName'
   responses:
     Error:
       description: Information about error
@@ -226,6 +424,36 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/AirportList'
+    Comment:
+      description: Comments
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Comment'
+    CommentsList:
+      description: List of comments
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/CommentsList'
+    CityBase:
+      description: City
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/CityBase'
+    CityFull:
+      description: City with all airports and comments
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/CityFull'
+    CitiesList:
+      description: List of cities
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/CitiesList'
   schemas:
     IdSchema:
       type: integer
@@ -292,6 +520,106 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Airport'
+      required:
+        - items
+    Poster:
+      properties:
+        id:
+          $ref: '#/components/schemas/IdSchema'
+        name:
+          type: string
+      required:
+        - id
+    CommentCity:
+      properties:
+        id:
+          $ref: '#/components/schemas/IdSchema'
+        name:
+          type: string
+      required:
+        - id
+    Comment:
+      properties:
+        id:
+          $ref: '#/components/schemas/IdSchema'
+        city:
+          $ref: '#/components/schemas/CommentCity'
+        poster:
+          $ref: '#/components/schemas/Poster'
+        text:
+          type: string
+        created:
+          type: string
+          format: date-time
+        modified:
+          type: string
+          format: date-time
+      required:
+        - id
+        - city
+        - poster
+        - text
+        - created
+        - modified
+    CommentsList:
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Comment'
+      required:
+        - items
+    SaveNewComment:
+      properties:
+        cityId:
+          $ref: '#/components/schemas/IdSchema'
+        test:
+          type: string
+          maxLength: 255
+      required:
+        - cityId
+        - text
+    UpdateComment:
+      allOf:
+        - $ref: '#/components/schemas/SaveNewComment'
+        - properties:
+            posterId:
+              $ref: '#/components/schemas/IdSchema'
+          required:
+            - posterId
+    CityName:
+      properties:
+        name:
+          type: string
+          maximum: 100
+      required:
+        - name
+    CityBase:
+      allOf:
+        - properties:
+            id:
+              $ref: '#/components/schemas/IdSchema'
+          required:
+            - id
+        - $ref: '#/components/schemas/CityName'
+    CityFull:
+      allOf:
+        - $ref: '#/components/schemas/CityBase'
+        - properties:
+            airports:
+              type: array
+              items:
+                $ref: '#/components/schemas/Airport'
+            comments:
+              type: array
+              items:
+                $ref: '#/components/schemas/Comment'
+    CitiesList:
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/CityBase'
       required:
         - items
     PageSchema:
